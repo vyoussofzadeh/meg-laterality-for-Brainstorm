@@ -19,7 +19,7 @@ function varargout = process_computeLI_HCP(varargin )
 % For more information type "brainstorm license" at command prompt.
 % =============================================================================@
 %
-% Authors: Vahab YoussofZadeh, 2023
+% Authors: Vahab YoussofZadeh, 2024
 
 eval(macro_method);
 end
@@ -259,7 +259,7 @@ SurfaceFile = load(fullfile(ProtocolInfo.SUBJECTS, sResultP.SurfaceFile));
 Scouts = [];
 sScout = [];
 for i = 1:length(SurfaceFile.Atlas)
-    if contains(SurfaceFile.Atlas(i).Name, {'mmp_in_mni_symmetrical_1.nii_05'})
+    if contains(SurfaceFile.Atlas(i).Name, {'mmp_in_mni_symmetrical_1.nii'})
         Scouts = SurfaceFile.Atlas(i).Scouts;
     end
 end
