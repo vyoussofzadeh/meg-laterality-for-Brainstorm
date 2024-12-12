@@ -669,6 +669,29 @@ end
 end
 
 function [Summ_LI, LI_label_out, L_count, R_count, threshold] = processLI_ROIs(cfg_LI)
+% processLI_ROIs Computes the Laterality Index (LI) for each ROI defined in cfg_LI.
+%
+% INPUT:
+%   cfg_LI: A struct containing configuration and data.
+%       .RoiIndices      : Cell array, each cell contains indices of vertices for a given ROI (left/right).
+%       .RoiLabels       : Cell array of ROI names (strings).
+%       .sScout          : Struct with field .Scouts, each containing a list of vertices for a subregion.
+%       .ImageGridAmp    : Matrix of source amplitudes (Vertices x Time).
+%       .Threshtype      : Integer (1,2,3) specifying how threshold is determined.
+%       .Ratio4Threshold : Float ratio (0-1) used to compute threshold.
+%       .GlobalMax       : Max amplitude over all vertices and times.
+%       .AllMax          : Max amplitude in the time interval of interest.
+%       .method          : Integer specifying LI calculation method (e.g. 1=Power-based, 2=Count-based).
+%       .t1, .t2         : Time indices defining the interval of interest.
+%       .Tinterval       : Interval type (1,2,3).
+%       (Optional) .globmax_rois : If Tinterval=3, per-ROI max values.
+%
+% OUTPUT:
+%   Summ_LI     : Array of computed LI values for each ROI.
+%   LI_label_out: Cell array of ROI labels corresponding to Summ_LI.
+%   L_count     : Array of left hemisphere counts (or power) used in LI computation.
+%   R_count     : Array of right hemisphere counts (or power).
+%   threshold   : Computed threshold value used for LI calculation.
 
 % Initialize output variables
 RoiIndices = cfg_LI.RoiIndices;
@@ -682,8 +705,12 @@ AllMax = cfg_LI.AllMax;
 method = cfg_LI.method;
 Summ_LI = zeros(1, length(RoiIndices));
 LI_label_out = cell(1, length(RoiIndices));
+
 t1 = cfg_LI.t1;
 t2 = cfg_LI.t2;
+
+L_count = zeros(1, length(RoiIndices));
+R_count = zeros(1, length(RoiIndices));
 
 % Process each ROI
 for ii = 1:length(RoiIndices)
@@ -713,9 +740,9 @@ for ii = 1:length(RoiIndices)
             ROIMax = max(LH_max,RH_max);
     end
     
-    switch cfg_LI.Tinterval % for window-based approach
-        case 3
-            ROIMax =  cfg_LI.globmax_rois(ii);
+    % For window-based approach (Tinterval == 3), use the precomputed global max for each ROI:
+    if cfg_LI.Tinterval == 3
+        ROIMax = cfg_LI.globmax_rois(ii);
     end
     
     % Select threshold based on type
@@ -732,40 +759,73 @@ for ii = 1:length(RoiIndices)
     %     ind_L = LHvals > threshold;
     %     ind_R = RHvals > threshold;
     
-    if method == 1
-        
-        pow_left  = sum(LHvals(LHvals(:) > threshold));
-        pow_left = pow_left/size(LHvals,1);
-        
-        pow_right = sum(RHvals(RHvals(:) > threshold));
-        pow_right = pow_right/size(RHvals,1);
-        
-        LI_ROIval = 100 * ((pow_left - pow_right) / (pow_left + pow_right));
-        
-        L_count(ii) = pow_left;
-        R_count(ii) = pow_right;
-        
-        % Store the results
-        Summ_LI(ii) = LI_ROIval;
-        
-    else
-        
-        % Count the number of significant voxels in each hemisphere
-        L_ROIcount = sum(LHvals(:) > threshold);
-        R_ROIcount = sum(RHvals(:) > threshold);
-        
-        LI_ROIcount = 100 * ((L_ROIcount - R_ROIcount) / (L_ROIcount + R_ROIcount));
-        
-        L_count(ii) = L_ROIcount;
-        R_count(ii) = R_ROIcount;
-        
-        % Store the results
-        Summ_LI(ii) = LI_ROIcount;
+    switch method
+        case 1
+            % Power-based LI calculation
+            pow_left  = sum(LHvals(LHvals(:) > threshold));
+            pow_left = pow_left/size(LHvals,1);
+            
+            pow_right = sum(RHvals(RHvals(:) > threshold));
+            pow_right = pow_right/size(RHvals,1);
+            
+            LI_ROIval = 100 * ((pow_left - pow_right) / (pow_left + pow_right));
+            
+            L_count(ii) = pow_left;
+            R_count(ii) = pow_right;
+            
+            % Store the results
+            Summ_LI(ii) = LI_ROIval;
+            
+        otherwise
+            % Counting-based LI calculation
+            L_ROIcount = sum(LHvals(:) > threshold);
+            R_ROIcount = sum(RHvals(:) > threshold);
+            
+            LI_ROIcount = 100 * ((L_ROIcount - R_ROIcount) / (L_ROIcount + R_ROIcount));
+            
+            L_count(ii) = L_ROIcount;
+            R_count(ii) = R_ROIcount;
+            
+            % Store the results
+            Summ_LI(ii) = LI_ROIcount;
     end
-    
     LI_label_out{ii} = s2;
 end
 end
+
+%     if method == 1
+%
+%         pow_left  = sum(LHvals(LHvals(:) > threshold));
+%         pow_left = pow_left/size(LHvals,1);
+%
+%         pow_right = sum(RHvals(RHvals(:) > threshold));
+%         pow_right = pow_right/size(RHvals,1);
+%
+%         LI_ROIval = 100 * ((pow_left - pow_right) / (pow_left + pow_right));
+%
+%         L_count(ii) = pow_left;
+%         R_count(ii) = pow_right;
+%
+%         % Store the results
+%         Summ_LI(ii) = LI_ROIval;
+%
+%     else
+%
+%         % Count the number of significant voxels in each hemisphere
+%         L_ROIcount = sum(LHvals(:) > threshold);
+%         R_ROIcount = sum(RHvals(:) > threshold);
+%
+%         LI_ROIcount = 100 * ((L_ROIcount - R_ROIcount) / (L_ROIcount + R_ROIcount));
+%
+%         L_count(ii) = L_ROIcount;
+%         R_count(ii) = R_ROIcount;
+%
+%         % Store the results
+%         Summ_LI(ii) = LI_ROIcount;
+%     end
+%
+%     LI_label_out{ii} = s2;
+
 
 function plot_LI(cfg_LI)
 
@@ -775,7 +835,8 @@ ylabel('Lateralization Index (LI)');
 val = round(mean(cfg_LI.windows(:,1),2),2);
 set(gca, 'Xtick', 1:2:length(cfg_LI.windows), 'XtickLabel', val(1:2:end));
 set(gca, 'FontSize', 8, 'XTickLabelRotation', 90);
-set(gcf, 'Position', [400, 400, 500, 200]);
+set(gcf, 'Position', [400, 400, 900, 200]);
+xlim([1 length(val)])
 
 xlabel('Mean Temporal Windows (sec)');
 switch cfg_LI.method
