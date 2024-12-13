@@ -74,7 +74,7 @@ For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](htt
 
 ### Example Code Snippet
 If you prefer scripting, call the process directly in MATLAB:
-   ```bash
+   ```matlab
    % sFiles: cell array of Brainstorm result filenames
    sProcess = bst_process('CallProcess', 'process_computeLI_HCP', sFiles, [], ...
     'twindow',     300, ...
