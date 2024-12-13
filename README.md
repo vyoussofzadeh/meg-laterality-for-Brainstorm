@@ -41,7 +41,7 @@ Users can adjust the threshold ratio to control the sensitivity of region inclus
 - **MATLAB**: Tested on recent MATLAB versions.
 - **Brainstorm**: Download and install from [the official website](https://neuroimage.usc.edu/brainstorm). Ensure Brainstorm is on your MATLAB path.
 - **MEG Data**: Source-level MEG data processed in Brainstorm (containing `ImageGridAmp`).
-- **HCP Atlas**: Ensure your subject’s anatomy is co-registered with the HCP MMP1.0 atlas or a compatible symmetrical MNI atlas.
+- **HCP Atlas**: Ensure your subject’s anatomy is co-registered with the HCP MMP1.0 atlas or a compatible symmetrical MNI atlas. A commpatible copy of HCP atlas is included in this repository.
 
 ## Installation
 
