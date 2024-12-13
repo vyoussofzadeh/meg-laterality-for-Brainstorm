@@ -1,4 +1,4 @@
-function varargout = process_computeLI(varargin )
+function varargout = process_computeLI_HCP(varargin )
 % PROCESS_FT_SOURCEANALYSIS Call FieldTrip function ft_sourceanalysis (DICS)
 
 % @=============================================================================
@@ -20,7 +20,7 @@ function varargout = process_computeLI(varargin )
 % =============================================================================@
 %
 % Authors: Vahab YoussofZadeh, 2024
-% last update: 12/2/24: Window-based LI analysis was added.
+% last update: 12/13/24: Window-based LI analysis was added.
 
 eval(macro_method);
 
@@ -29,7 +29,7 @@ end
 %% ===== GET DESCRIPTION =====
 function sProcess = GetDescription() %#ok<DEFNU>
 
-% Description the process
+% Process description
 sProcess.Comment     = 'Compute LI, surface-based, HCP atlas';
 sProcess.Category    = 'Custom';
 sProcess.SubGroup    = 'Sources';
@@ -40,78 +40,81 @@ sProcess.OutputTypes = {'results'};
 sProcess.nInputs     = 1;
 sProcess.nMinFiles   = 1;
 
-% Define the time window and overlap
-sProcess.options.twindow.Comment = 'Time window length (ms):';
-sProcess.options.twindow.Type = 'value';
-sProcess.options.twindow.Value = {300, '', 0, 100, 1}; % Default 2 seconds, min 0.1, max 10, step 0.1
+% Time window parameters
+sProcess.options.timeParams.Comment = 'Time Window Parameters:';
+sProcess.options.timeParams.Type    = 'group';
+sProcess.options.timeParams.Value   = [];
+sProcess.options.twindow.Comment    = 'Window length (ms):';
+sProcess.options.twindow.Type       = 'value';
+sProcess.options.twindow.Value      = {300, 'ms', 100, 1000, 1};  % Min 100, Max 1000, Step 1
+sProcess.options.toverlap.Comment   = 'Overlap between windows (%):';
+sProcess.options.toverlap.Type      = 'value';
+sProcess.options.toverlap.Value     = {50, '%', 0, 100, 1};
 
-sProcess.options.toverlap.Comment = 'Overlap between windows (%):';
-sProcess.options.toverlap.Type = 'value';
-sProcess.options.toverlap.Value = {50, '%', 0}; % Default 50%, min 0, max 100
-
-sProcess.options.methodSource.Comment = 'Use Source magnitude values Method';
+% LI computation methods
+sProcess.options.liMethods.Comment  = 'Lateralization Index Methods:';
+sProcess.options.liMethods.Type     = 'group';
+sProcess.options.liMethods.Value    = [];
+sProcess.options.methodSource.Comment = 'Source Magnitude Method';
 sProcess.options.methodSource.Type    = 'checkbox';
-sProcess.options.methodSource.Value   = 0; % Not selected by default
-
-% Add options to select the LI computation method as checkboxes
-sProcess.options.methodCounting.Comment = 'Use Counting Method';
+sProcess.options.methodSource.Value   = 0;
+sProcess.options.methodCounting.Comment = 'Counting Method';
 sProcess.options.methodCounting.Type    = 'checkbox';
-sProcess.options.methodCounting.Value   = 0; % Not selected by default
-
-sProcess.options.methodBootstrap.Comment = 'Use Bootstrapping Method';
+sProcess.options.methodCounting.Value   = 0;
+sProcess.options.methodBootstrap.Comment = 'Bootstrapping Method';
 sProcess.options.methodBootstrap.Type    = 'checkbox';
-sProcess.options.methodBootstrap.Value   = 0; % Not selected by default
+sProcess.options.methodBootstrap.Value   = 0;
 
-% Add bootstrap parameters
-sProcess.options.divs.Comment = 'Number of divisions for bootstrap:';
+% Bootstrap specific parameters
+sProcess.options.bootstrapParams.Comment = 'Bootstrap Parameters:';
+sProcess.options.bootstrapParams.Type    = 'group';
+sProcess.options.bootstrapParams.Value   = [];
+sProcess.options.divs.Comment = 'Number of divisions:';
 sProcess.options.divs.Type    = 'value';
-sProcess.options.divs.Value   = {10, '', 1, 100, 1}; % default 10, min 1, max 100, step 1
-
+sProcess.options.divs.Value   = {10, '', 1, 100, 1}; 
 sProcess.options.n_resampling.Comment = 'Number of resampling iterations:';
 sProcess.options.n_resampling.Type    = 'value';
-sProcess.options.n_resampling.Value   = {200, '', 1, 1000, 1}; % default 20, min 1, max 1000, step 1
-
+sProcess.options.n_resampling.Value   = {200, '', 1, 1000, 1};
 sProcess.options.RESAMPLE_RATIO.Comment = 'Resample ratio (%):';
 sProcess.options.RESAMPLE_RATIO.Type    = 'value';
-sProcess.options.RESAMPLE_RATIO.Value   = {75, '%', 0, 100, 1, 1};  % Now represented as a percentage
+sProcess.options.RESAMPLE_RATIO.Value   = {75, '%', 0, 100, 1, 1};
 
-% Modify time interval input to include "Averaged Time Interval" and "Window based"
-sProcess.options.window.Comment = 'Choose a time interval:';
+% Time interval selection
+sProcess.options.window.Comment = 'Time Interval Analysis:';
 sProcess.options.window.Type = 'combobox';
 sProcess.options.window.Value = {1, {'Specific Time Interval', 'Averaged Time Interval', 'Window based'}};
 
-% Active time window
+% Window
 sProcess.options.poststim.Comment = 'Enter specific time interval:';
 sProcess.options.poststim.Type    = 'poststim';
 sProcess.options.poststim.Value   = [];
 
-% Add an effect input
-sProcess.options.effect.Comment = 'Choose an effect:';
-sProcess.options.effect.Type    = 'combobox';
-sProcess.options.effect.Value   = {1, {'Positive values', 'Negative', 'Absolute'}};
+% Specify effect
+sProcess.options.effect.Comment = 'Effect Type:';
+sProcess.options.effect.Type = 'combobox';
+sProcess.options.effect.Value = {1, {'Positive values', 'Negative values', 'Absolute values'}};
 
-% Add a threshold type input
+% Threshold settings
+sProcess.options.threshold.Comment = 'Threshold Settings:';
+sProcess.options.threshold.Type = 'group';
+sProcess.options.threshold.Value = [];
 sProcess.options.threshtype.Comment = 'Threshold type:';
 sProcess.options.threshtype.Type    = 'combobox';
-sProcess.options.threshtype.Value   = {1, {'Global-max: all time and regions combined', ...
-    'Time-max: time of interest (toi) and all regions', ...
-    'Region-max: toi and regions of interests (rois)'}};
-% Add a threshold ratio input
+sProcess.options.threshtype.Value   = {1, {'Global-max', 'Time-max', 'Region-max'}};
 sProcess.options.ratio4threshold.Comment = 'Threshold ratio (%):';
-sProcess.options.ratio4threshold.Type    = 'value';
-sProcess.options.ratio4threshold.Value   = {20, '%', 0, 100, 1, 1}; % {default value, '', min value, max value, step size, decimal digits}
+sProcess.options.ratio4threshold.Type = 'value';
+sProcess.options.ratio4threshold.Value = {20, '%', 0, 100, 1, 1};
 
-% Add a folder directory input
+% Output settings
 sProcess.options.savedir.Comment = 'Saving Dir.:';
 sProcess.options.savedir.Type    = 'text';
 sProcess.options.savedir.Value   = ''; % Default value can be empty or a specific path
-
-% Add a saving file name input
 sProcess.options.sname.Comment = 'Saving filename:';
 sProcess.options.sname.Type    = 'text';
 sProcess.options.sname.Value   = ''; % Default value can be empty or a specific name
 
 end
+
 
 %% ===== FORMAT COMMENT =====
 function Comment = FormatComment(sProcess) %#ok<DEFNU>
@@ -120,6 +123,8 @@ end
 
 %% ===== RUN =====
 function OutputFiles = Run(sProcess, sInput)
+
+bst_progress('stop');
 
 OutputFiles = {};
 sResultP = in_bst_results(sInput.FileName, 1);
@@ -230,7 +235,7 @@ end
 disp(['LI assessed for: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec']);
 disp('of HCP-MMP1 atlas ROIs.')
 disp('To edit the LI script, first ensure Brainstorm is running. Then, open process_computeLI.m in Matlab.');
-disp('Pipeline last update: 12/13/24');
+disp('LI analysis is completed!')
 
 end
 
@@ -894,15 +899,12 @@ for r = 1:R
     % If bootstrapping was used, add CI information for this ROI at max_win
     if cfg_LI.method == 3
         roi_ci = squeeze(cfg_LI.final_CI(max_win, r, :));
-        lower_CI_95 = roi_ci(1);
-        upper_CI_95 = roi_ci(2);
+        ci_str = sprintf('[%.2f - %.2f]', roi_ci(1), roi_ci(2));
         
-        ci_t = table(lower_CI_95, upper_CI_95, ...
-            'VariableNames', {'Lower_CI_95', 'Upper_CI_95'});
+        ci_t = table({ci_str}, 'VariableNames', {'CI_95'});
         
         new_row = [new_row, ci_t];
     end
-    
     final_table = [final_table; new_row];
 end
 
@@ -928,20 +930,24 @@ switch cfg_LI.method
         d = [a,b,c];
         disp(d)
     case 3     
+
         % Convert each to a column (4x1)
         Summ_LI = cfg_LI.Summ_LI(:);
         RoiLabels = cfg_LI.RoiLabels(:);
         L_vertices_total = cfg_LI.L_count(:);
+        R_vertices_total = cfg_LI.R_count(:);
         
-        % Do the same for other variables like CI_strings, CI_widths, R_vertices_total, etc.
+        % Combine L and R vertex counts into a single string per row
+        Vertices_total = arrayfun(@(l, r) sprintf('%d  %d', l, r), L_vertices_total, R_vertices_total, 'UniformOutput', false);
+        
         % Assuming all other arrays are also 1x4, just transpose them:
         CI_strings = cfg_LI.CI_strings(:);
         CI_widths = cfg_LI.CI_widths(:);
-        R_vertices_total = cfg_LI.R_count(:);
         
-        T = table(RoiLabels, Summ_LI, CI_strings, CI_widths, L_vertices_total, R_vertices_total, ...
-            'VariableNames', {'ROI', 'LI', 'CI_95', 'CI_Width', 'L_Vertices', 'R_Vertices'});
-        disp(T);
+        % Create a table with the combined vertices column
+        T = table(RoiLabels, Summ_LI, CI_strings, CI_widths, Vertices_total, ...
+            'VariableNames', {'ROI', 'LI', 'CI_95', 'CI_Width', 'Left_vs_right'});
+        disp(T);       
 end
 end
 
@@ -1045,7 +1051,8 @@ fprintf(tempfile, '\n');
 fclose(tempfile);
 %
 % Display the path to the saved file
-disp(['Results saved to: ' filename]);
+disp('Results saved to: ');
+disp(filename)
 
 end
 
