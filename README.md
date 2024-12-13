@@ -44,6 +44,35 @@ For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](htt
    ```bash
    addpath('path_to_meg-laterality-for-Brainstorm');
    savepath;
+   
+### Step-by-Step in Brainstorm
+
+1. **Open Brainstorm** and load your MEG protocol containing source-level results.
+
+2. **Select a Results File**: Choose the `...results...mat` file you wish to analyze.
+
+3. **Run the Custom Process**:
+    - In the Brainstorm **Process** tab, select **Compute LI, surface-based, HCP atlas**.
+    - Adjust the process parameters as needed:
+      - **Time interval method**: Specific, Averaged, or Window-based.
+      - **Window parameters**: Window length and overlap (if using Window-based intervals).
+      - **LI computation method(s)**: Source magnitude, Counting, and/or Bootstrapping.
+      - **Bootstrap parameters**: If bootstrapping is enabled, define divisions, resampling iterations, and resample ratio.
+      - **Thresholding**: Choose the threshold type and ratio.
+      - **Output**: Specify the output directory and filename.
+    - Click **Run** to execute the pipeline.
+
+4. **Results**:
+    - The pipeline computes LI for all defined ROIs and time intervals.
+    - It generates output files (e.g., `.xls`) containing LI values, vertex counts, and (if bootstrapping is used) 95% confidence intervals.
+    - Summaries are displayed, and if window-based analysis is used, LI evolution over time can be plotted.
+
+5. **Check Outputs**:
+    - Review the MATLAB command window for logs.
+    - Check the specified output directory for result files.
+    - If bootstrapping was performed, examine the CI columns in the output files to assess the precision and stability of the LI estimates.
+
+
 
 3. **Brainstorm Protocol:**
   Load your Brainstorm protocol. The pipeline uses the currently selected protocol and results.
