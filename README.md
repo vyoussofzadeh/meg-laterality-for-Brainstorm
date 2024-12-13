@@ -92,7 +92,7 @@ If you prefer scripting, call the process directly in MATLAB:
     'ratio4threshold', 20, ...
     'savedir',      '/path/to/save/dir', ...
     'sname',        'analysis_results');
-```matlab
+```
 
 ### Interpreting Results
 - **LI**: A positive LI value suggests left-hemisphere dominance, while a negative LI suggests right-hemisphere dominance.
