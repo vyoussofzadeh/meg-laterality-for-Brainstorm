@@ -92,11 +92,3 @@ If you prefer scripting, call the process directly in MATLAB:
     'ratio4threshold', 20, ...
     'savedir',      '/path/to/save/dir', ...
     'sname',        'analysis_results');
-
-### Interpreting Results
-   - LI: Positive LI suggests left-hemisphere dominance; negative LI suggests right-hemisphere dominance.
-   - CI_95 (Bootstrapping): Indicates the uncertainty in LI estimation. Narrow CI implies more stable results.
-   - Window-based Analysis: Understand how hemispheric dominance changes over time or in response to different tasks.
-
-### Support and Contributions
-Open an issue for questions or assistance. Contributions via pull requests are welcome.
