@@ -2,13 +2,15 @@
 
 This repository hosts a Brainstorm-compatible pipeline for analyzing brain laterality using magnetoencephalography (MEG) task responses. The pipeline leverages [Brainstorm](https://neuroimage.usc.edu/brainstorm/), a popular MATLAB toolbox, to facilitate robust analysis of hemispheric differences and lateralization indices (LI) in brain activity.
 
-## Overview
+## LI methods
 
 The pipeline provides several methods for computing a Lateralization Index (LI):
 
 - **Source Magnitude Method**: Compares source amplitude across hemispheres.
 - **Counting Method**: Counts the number of suprathreshold vertices in left vs. right hemispheres.
 - **Bootstrapping Method**: Uses resampling to obtain LI confidence intervals (95% CI), providing estimates of uncertainty around the LI measurement.
+
+## Time interval selection
 
 You can also select different time intervals for analysis:
 - **Specific Time Interval**: Analyze a predefined time range.
