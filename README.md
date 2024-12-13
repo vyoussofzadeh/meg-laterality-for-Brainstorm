@@ -72,7 +72,7 @@ For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](htt
     - Check the specified output directory for result files.
     - If bootstrapping was performed, examine the CI columns in the output files to assess the precision and stability of the LI estimates.
 
-6. **Example Code Snippet:**
+### Example Code Snippet
 If you prefer scripting, call the process directly in MATLAB:
    ```bash
    % sFiles: cell array of Brainstorm result filenames
