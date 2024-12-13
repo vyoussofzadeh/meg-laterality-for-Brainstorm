@@ -49,7 +49,7 @@ sProcess.options.twindow.Type       = 'value';
 sProcess.options.twindow.Value      = {300, 'ms', 100, 1000, 1};  % Min 100, Max 1000, Step 1
 sProcess.options.toverlap.Comment   = 'Overlap between windows (%):';
 sProcess.options.toverlap.Type      = 'value';
-sProcess.options.toverlap.Value     = {50, '%', 0, 100, 1};
+sProcess.options.toverlap.Value     = {50, '', 0, 100, 1};
 
 % LI computation methods
 sProcess.options.liMethods.Comment  = 'Lateralization Index Methods:';
@@ -71,7 +71,7 @@ sProcess.options.bootstrapParams.Type    = 'group';
 sProcess.options.bootstrapParams.Value   = [];
 sProcess.options.divs.Comment = 'Number of divisions:';
 sProcess.options.divs.Type    = 'value';
-sProcess.options.divs.Value   = {10, '', 1, 100, 1}; 
+sProcess.options.divs.Value   = {10, '', 1, 100, 1};
 sProcess.options.n_resampling.Comment = 'Number of resampling iterations:';
 sProcess.options.n_resampling.Type    = 'value';
 sProcess.options.n_resampling.Value   = {200, '', 1, 1000, 1};
@@ -113,6 +113,20 @@ sProcess.options.sname.Comment = 'Saving filename:';
 sProcess.options.sname.Type    = 'text';
 sProcess.options.sname.Value   = ''; % Default value can be empty or a specific name
 
+% New options for saving as .mat and plotting results
+sProcess.options.saveMat.Comment = 'Save results as .mat file';
+sProcess.options.saveMat.Type    = 'checkbox';
+sProcess.options.saveMat.Value   = 0;  % Not selected by default
+
+sProcess.options.plotResults.Comment = 'Enable Plotting';
+sProcess.options.plotResults.Type    = 'checkbox';
+sProcess.options.plotResults.Value   = 1;  % Selected by default
+
+% Note about the applicability of options
+sProcess.options.noteApplicability.Comment = 'Note: Saving as .mat and plotting options are applicable only for the Window-based method.';
+sProcess.options.noteApplicability.Type = 'label';
+sProcess.options.noteApplicability.Value = {};
+
 end
 
 
@@ -125,6 +139,9 @@ end
 function OutputFiles = Run(sProcess, sInput)
 
 bst_progress('stop');
+
+plotResults = sProcess.options.plotResults.Value;
+saveMat = sProcess.options.saveMat.Value;
 
 OutputFiles = {};
 sResultP = in_bst_results(sInput.FileName, 1);
@@ -184,6 +201,9 @@ if sProcess.options.window.Value{1} == 3
 else
     wi = [];
 end
+disp('Selected intervals:')
+disp(['Interval [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec, L:', num2str(winLength), ' ms, overlap:', num2str(overlap), '%:'])
+disp(wi)
 
 % Define ROIs
 [RoiLabels, RoiIndices] = defineROIs_HCP(sScout);
@@ -202,7 +222,10 @@ cfg_LI.Threshtype = Threshtype;
 cfg_LI.Ratio4Threshold = Ratio4Threshold;
 cfg_LI.t1 = t1;
 cfg_LI.t2 = t2;
+cfg_LI.plotResults = plotResults;
+cfg_LI.saveMat = saveMat;
 cfg_LI.savedir = savedir;
+cfg_LI.Comment = sResultP.Comment;
 cfg_LI.windows = wi; % window-based analysis
 cfg_LI.sname =  sProcess.options.sname.Value;
 cfg_LI.Time = sResultP.Time;
@@ -601,8 +624,17 @@ elseif ~isempty(windows) && cfg_LI.Tinterval == 3
     
     cfg_LI.final_LI = final_LI;
     if cfg_LI.method == 3, cfg_LI.final_CI = final_CI; end
-    plot_LI(cfg_LI);
-    report_tLI(cfg_LI);
+    
+    if cfg_LI.plotResults == 1
+        plot_LI(cfg_LI);
+    end
+    LI_summary = report_tLI(cfg_LI);
+    
+    cfg_LI.LI_summary = LI_summary;
+    
+    if cfg_LI.saveMat == 1
+        export_tLI(cfg_LI);
+    end
     
 end
 end
@@ -848,8 +880,9 @@ ylabel('Lateralization Index (LI)');
 val = round(mean(cfg_LI.windows(:,1),2),2);
 set(gca, 'Xtick', 1:2:length(cfg_LI.windows), 'XtickLabel', val(1:2:end));
 set(gca, 'FontSize', 8, 'XTickLabelRotation', 90);
-set(gcf, 'Position', [400, 400, 900, 200]);
+set(gcf, 'Position', [400, 400, 700, 300]);
 xlim([1 length(val)])
+box off
 
 xlabel('Mean Temporal Windows (sec)');
 switch cfg_LI.method
@@ -866,7 +899,7 @@ legend(cfg_LI.RoiLabels', 'Location', 'best');
 
 end
 
-function report_tLI(cfg_LI)
+function final_table = report_tLI(cfg_LI)
 % REPORT_TLI evaluates each ROI separately, finding the max LI value, the corresponding
 % time interval, the median LI, and optionally the 95% CI at the max LI time point if
 % bootstrapping was used.
@@ -929,8 +962,8 @@ switch cfg_LI.method
         c = table([cfg_LI.L_count;cfg_LI.R_count]'); c.Properties.VariableNames{'Var1'} = 'Left_vs_right';
         d = [a,b,c];
         disp(d)
-    case 3     
-
+    case 3
+        
         % Convert each to a column (4x1)
         Summ_LI = cfg_LI.Summ_LI(:);
         RoiLabels = cfg_LI.RoiLabels(:);
@@ -947,8 +980,45 @@ switch cfg_LI.method
         % Create a table with the combined vertices column
         T = table(RoiLabels, Summ_LI, CI_strings, CI_widths, Vertices_total, ...
             'VariableNames', {'ROI', 'LI', 'CI_95', 'CI_Width', 'Left_vs_right'});
-        disp(T);       
+        disp(T);
 end
+end
+
+function export_tLI(cfg_LI)
+
+folderPath = fullfile(cfg_LI.savedir);
+if ~exist(folderPath, 'dir')
+    mkdir(folderPath);
+    disp('Folder created successfully.');
+else
+    disp('Folder already exists.');
+end
+
+sname = cfg_LI.sname;
+
+sLI = [];
+sLI.final_LI      = cfg_LI.final_LI;
+sLI.windows       = cfg_LI.windows;
+sLI.RoiLabels     = cfg_LI.RoiLabels;
+sLI.LI_summary    = cfg_LI.LI_summary;
+sLI.filename      = cfg_LI.Comment;
+sLI.Threshtype    = cfg_LI.Threshtype;
+sLI.globmax_rois  = cfg_LI.globmax_rois;
+
+switch cfg_LI.method
+    case 1
+        mtd_label = 'S';
+    case 2
+        mtd_label = 'C';
+    case 3
+        mtd_label = 'B';
+        sLI.final_CI     = cfg_LI.final_CI;
+        sLI.n_resampling = cfg_LI.n_resampling;
+        sLI.divs         = cfg_LI.divs;
+end
+
+save(fullfile(folderPath,[sname, '_',mtd_label, '.mat']), '-struct', 'sLI');
+
 end
 
 function export_LI(cfg_LI)
@@ -1073,4 +1143,14 @@ for ii = 1:length(cfg_LI.RoiIndices)
     end
     globmax_rois(ii) = max(mdwin(:));
 end
+end
+
+function saveMatOption = createSaveMatOption()
+% Define the option to save results in .mat format
+saveMatOption = struct('Comment', 'Save results as .mat', 'Type', 'checkbox', 'Value', 0);
+end
+
+function plotOption = createPlotOption()
+% Define the option to enable/disable plotting
+plotOption = struct('Comment', 'Enable Plotting', 'Type', 'checkbox', 'Value', 1);
 end
