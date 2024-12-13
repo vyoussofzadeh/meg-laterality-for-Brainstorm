@@ -72,12 +72,7 @@ For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](htt
     - Check the specified output directory for result files.
     - If bootstrapping was performed, examine the CI columns in the output files to assess the precision and stability of the LI estimates.
 
-
-
-3. **Brainstorm Protocol:**
-  Load your Brainstorm protocol. The pipeline uses the currently selected protocol and results.
-
-4. **Example Code Snippet:**
+6. **Example Code Snippet:**
 If you prefer scripting, call the process directly in MATLAB:
    ```bash
    % sFiles: cell array of Brainstorm result filenames
