@@ -45,5 +45,5 @@ For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](htt
    addpath('path_to_meg-laterality-for-Brainstorm');
    savepath;
 
-3. **Brainstorm Protocol:**:
+3. **Brainstorm Protocol:**
   Load your Brainstorm protocol. The pipeline uses the currently selected protocol and results.
