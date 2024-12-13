@@ -202,14 +202,14 @@ cfg_LI.windows = wi; % window-based analysis
 cfg_LI.sname =  sProcess.options.sname.Value;
 cfg_LI.Time = sResultP.Time;
 
-disp('Source values')
+disp('Source values ...')
 if sProcess.options.methodSource.Value == 1
     cfg_LI.method = 1;
     computeLI(cfg_LI); % Source-based method
     pause(0.2)
 end
 
-disp('Counting')
+disp('Counting ...')
 % Handle the selected LI computation method
 if sProcess.options.methodCounting.Value ==1
     cfg_LI.method = 2;
@@ -217,7 +217,7 @@ if sProcess.options.methodCounting.Value ==1
     pause(0.2)
 end
 
-disp('Bootstrapping')
+disp('Bootstrapping ...')
 if sProcess.options.methodBootstrap.Value == 1
     cfg_LI.method = 3;
     cfg_LI.divs =  sProcess.options.divs.Value{1};  % Adjust as needed
@@ -227,11 +227,10 @@ if sProcess.options.methodBootstrap.Value == 1
     pause(0.2)
 end
 
-if Tinterval ~=2
-    disp(['Time: ', num2str(timerange(1)), '-', num2str(timerange(2))]);
-end
+disp(['LI assessed for: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec']);
+disp('of HCP-MMP1 atlas ROIs.')
 disp('To edit the LI script, first ensure Brainstorm is running. Then, open process_computeLI.m in Matlab.');
-disp('Pipeline last update: 09/25/23');
+disp('Pipeline last update: 12/13/24');
 
 end
 
@@ -426,7 +425,7 @@ end
 
 end
 
-function [Summ_LI, LI_label_out]  = computeLI_bootstrap(cfg_LI)
+function [Summ_LI, Summ_CI, LI_label_out, L_vertices_total, R_vertices_total, CI_strings, CI_widths]  = computeLI_bootstrap(cfg_LI)
 % Computes the Laterality Index (LI) using bootstrapping and exports the results, including vertex counts.
 
 % Perform bootstrapping for each ROI
@@ -437,51 +436,88 @@ L_vertices_total = zeros(1, TotROI); % Initialize vectors for left vertices coun
 R_vertices_total = zeros(1, TotROI); % Initialize vectors for right vertices count
 LI_label_out = cell(1, TotROI);
 
-% disp('Bootstrapping ..')
+% Pre-allocate output arrays
+Summ_LI = zeros(1, TotROI);
+Summ_CI = zeros(TotROI, 2);  % CI is assumed to have two values: lower and upper.
+L_vertices_total = zeros(1, TotROI);
+R_vertices_total = zeros(1, TotROI);
+LI_label_out = cell(1, TotROI);
+
 for ii = 1:TotROI
     
-    %     disp(['Processing ROI ', num2str(ii), ' of ', num2str(TotROI)])
+    % Set up configuration for bootstrapping
     cfg_main = [];
     cfg_main.atlas = cfg_LI.sScout;
-    cfg_main.RoiIndices = cfg_LI.RoiIndices{ii}; % Pass current ROI indices
-    cfg_main.divs = cfg_LI.divs; % Adjust as needed
-    cfg_main.n_resampling = cfg_LI.n_resampling; % Corrected to use n_resampling from cfg_LI
-    cfg_main.RESAMPLE_RATIO = cfg_LI.RESAMPLE_RATIO; % Adjust as needed
+    cfg_main.RoiIndices = cfg_LI.RoiIndices{ii};
+    cfg_main.divs = cfg_LI.divs;
+    cfg_main.n_resampling = cfg_LI.n_resampling;
+    cfg_main.RESAMPLE_RATIO = cfg_LI.RESAMPLE_RATIO;
     cfg_main.t1 = cfg_LI.t1;
     cfg_main.t2 = cfg_LI.t2;
     cfg_main.ImageGridAmp = cfg_LI.ImageGridAmp;
     cfg_main.Tinterval = cfg_LI.Tinterval;
     
-    % Call bootstrapping function for current ROI
-    [weighted_li, ~, L_vertices_above_thresh, R_vertices_above_thresh] = do_LI_bootstrap(cfg_main);
+    % Call bootstrapping function for the current ROI
+    [weighted_li, ~, L_vertices_above_thresh, R_vertices_above_thresh, CI] = do_LI_bootstrap(cfg_main);
     
     % Store results
-    Summ_LI(ii) = weighted_li; % Assuming weighted_li represents the LI for simplicity
-    L_vertices_total(ii) = sum(L_vertices_above_thresh); % Summing vertices counts for left hemisphere
-    R_vertices_total(ii) = sum(R_vertices_above_thresh); % Summing vertices counts for right hemisphere
+    Summ_LI(ii) = weighted_li;
+    Summ_CI(ii, :) = CI;  % Store both lower and upper CI values
+    L_vertices_total(ii) = sum(L_vertices_above_thresh);
+    R_vertices_total(ii) = sum(R_vertices_above_thresh);
     LI_label_out{ii} = RoiLabels{ii};
 end
+
+% Pre-compute a formatted CI string and CI width for each ROI
+TotROI = length(LI_label_out);
+CI_strings = cell(TotROI,1);
+CI_widths = zeros(TotROI,1);
+for i = 1:TotROI
+    lowerCI = Summ_CI(i,1);
+    upperCI = Summ_CI(i,2);
+    CI_strings{i} = sprintf('[%.2f, %.2f]', lowerCI, upperCI);
+    CI_widths(i) = upperCI - lowerCI;
+end
+
 
 if cfg_LI.report == 1
     
     % Save or display results
-    savedir = cfg_LI.savedir; % Directory to save the results
-    sname = cfg_LI.sname; % Use sname from cfg_LI for file naming
+    savedir = cfg_LI.savedir;   % Directory to save results
+    sname = cfg_LI.sname;       % Use sname from cfg_LI for the filename
     filename = fullfile(savedir, sname);
     
     % Open file for writing
     fid = fopen(filename, 'w');
-    fprintf(fid, 'ROI\tLI\tL_Vertices\tR_Vertices\n'); % Updated header to include vertex counts
+    % Updated header: now includes CI and CI width
+    fprintf(fid, 'ROI\tLI\tCI\tCI_Width\tL_Vertices\tR_Vertices\n');
     for i = 1:TotROI
-        fprintf(fid, '%s\t%f\t%d\t%d\n', LI_label_out{i}, Summ_LI(i), L_vertices_total(i), R_vertices_total(i));
+        fprintf(fid, '%s\t%f\t%s\t%f\t%d\t%d\n', ...
+            LI_label_out{i}, Summ_LI(i), CI_strings{i}, CI_widths(i), L_vertices_total(i), R_vertices_total(i));
     end
     fclose(fid);
     
-    disp(['Results saved to: ', filename]);
+    disp('Results saved to: ');
+    disp(filename);
     
-    % Optional: Display results in console for quick viewing
-    disp('Bootstrap LI Results with Vertex Counts:');
-    disp(table(RoiLabels', Summ_LI', L_vertices_total', R_vertices_total', 'VariableNames', {'ROI', 'LI', 'L_Vertices', 'R_Vertices'}));
+    % Before creating the table, combine L and R vertices into one column
+    LR_vertices_str = cell(TotROI, 1);
+    for i = 1:TotROI
+        LR_vertices_str{i} = sprintf('%d-%d', L_vertices_total(i), R_vertices_total(i));
+    end
+    
+    % Convert each to a column vector (if needed)
+    Summ_LI = Summ_LI(:);
+    RoiLabels = RoiLabels(:);
+    CI_strings = CI_strings(:);
+    CI_widths = CI_widths(:);
+    LR_vertices_str = LR_vertices_str(:);
+    
+    % Now create the table with the combined LR column
+    T = table(RoiLabels, Summ_LI, CI_strings, CI_widths, LR_vertices_str, ...
+        'VariableNames', {'ROI', 'LI', 'CI_95', 'CI_Width', 'Vertices_LR'});
+    
+    disp(T);
     
 end
 end
@@ -507,9 +543,9 @@ for i = 1:length(sScout.Scouts)
 end
 
 %%
-if isempty(windows) && cfg_LI.Tinterval ~= 3
+if isempty(windows) && cfg_LI.method ~= 3
     
-    [Summ_LI, LI_label_out, L_count, R_count, threshold] = processLI_ROIs(cfg_LI);
+    [Summ_LI, LI_label_out, L_count, R_count, threshold] = computeLI_Svalue_Count(cfg_LI);
     
     cfg_LI.Summ_LI = Summ_LI;
     cfg_LI.L_count = L_count;
@@ -520,118 +556,128 @@ if isempty(windows) && cfg_LI.Tinterval ~= 3
     export_LI(cfg_LI)
     report_LI(cfg_LI)
     
-elseif isempty(windows) && cfg_LI.Tinterval == 3
+elseif isempty(windows) && cfg_LI.method == 3
     
-    cfg_LI.divs =  sProcess.options.divs.Value{1};  % Adjust as needed
-    cfg_LI.n_resampling =  sProcess.options.n_resampling.Value{1};  % Adjust as needed
-    cfg_LI.RESAMPLE_RATIO = sProcess.options.RESAMPLE_RATIO.Value{1} / 100;  % Adjust as needed
-    cfg_LI.report = 1;
-    computeLI_bootstrap(cfg_LI);
+    cfg_LI.report = 0;
+    [Summ_LI, Summ_CI, LI_label_out, L_count, R_count, CI_strings, CI_widths]  = computeLI_bootstrap(cfg_LI);
+    
+    cfg_LI.Summ_LI = Summ_LI;
+    cfg_LI.Summ_CI = Summ_CI;
+    cfg_LI.L_count = L_count;
+    cfg_LI.R_count = R_count;
+    cfg_LI.R_count = R_count;
+    cfg_LI.CI_strings = CI_strings;
+    cfg_LI.CI_widths = CI_widths;
+    cfg_LI.LI_label_out = LI_label_out;
+    
+    export_LI(cfg_LI)
+    report_LI(cfg_LI)
     
 elseif ~isempty(windows) && cfg_LI.Tinterval == 3
     
     globmax_rois = compute_globmax_rois(cfg_LI);
     
     final_LI = [];
+    final_CI = [];
     for j = 1:length(windows)
         [~, cfg_LI.t1] = min(abs(cfg_LI.Time - windows(j,1)));
         [~, cfg_LI.t2] = min(abs(cfg_LI.Time - windows(j,2)));
         cfg_LI.globmax_rois = globmax_rois;
         if cfg_LI.method == 1 || cfg_LI.method == 2
-            [Summ_LI, ~, ~, ~, ~] = processLI_ROIs(cfg_LI);
+            [Summ_LI, ~, ~, ~, ~] = computeLI_Svalue_Count(cfg_LI);
         elseif cfg_LI.method == 3
             cfg_LI.report = 0;
-            disp(['Time window ', num2str(j), ' of ', num2str(length(windows))])
-            [Summ_LI, ~] = computeLI_bootstrap(cfg_LI);
+            disp(['Interval:', num2str(j), '/', num2str(length(windows)), ', [', num2str(windows(j,1)), ',', num2str(windows(j,2)), '] sec'])
+            [Summ_LI, Summ_CI, ~] = computeLI_bootstrap(cfg_LI);
+            final_CI(j,:,:) = Summ_CI;
         end
         final_LI = [final_LI;Summ_LI];
     end
     
     cfg_LI.final_LI = final_LI;
+    if cfg_LI.method == 3, cfg_LI.final_CI = final_CI; end
     plot_LI(cfg_LI);
     report_tLI(cfg_LI);
     
 end
 end
 
-function [weighted_li, num_threshvals, L_vertices_above_thresh, R_vertices_above_thresh] = do_LI_bootstrap(cfg_main)
-% Modified to use RoiIndices for distinguishing between left and right hemisphere ROIs
-% and to refine the reporting of vertices above threshold across bootstrapping.
-
-% Extract necessary configurations
+function [weighted_li, num_threshvals, L_vertices_above_thresh, R_vertices_above_thresh, CI] = do_LI_bootstrap(cfg_main)
 divs = cfg_main.divs;
 n_resampling = cfg_main.n_resampling;
 RESAMPLE_RATIO = cfg_main.RESAMPLE_RATIO;
 RoiIndices = cfg_main.RoiIndices;
-MIN_NUM_THRESH_VOXELS = divs / RESAMPLE_RATIO; % Adjust based on your specific logic
+MIN_NUM_THRESH_VOXELS = divs / RESAMPLE_RATIO; % Adjust as needed
 
-
+% Extract the data in the time interval
 if cfg_main.Tinterval == 2 || size(cfg_main.ImageGridAmp,2) == 1
     ImageGridAmp = mean(cfg_main.ImageGridAmp,2);
 else
     ImageGridAmp = cfg_main.ImageGridAmp(:, cfg_main.t1:cfg_main.t2);
 end
 
+% Optional downsampling if too large
 if size(ImageGridAmp,2) > 500
     ImageGridAmp = ImageGridAmp(:,1:10:end);
 end
 
-% Initialize output variables
-weighted_li = 0;
-num_threshvals = 0;
-
-% Initialize cumulative variables for counting vertices above threshold
-cumulative_L_vertices_above_thresh = 0;
-cumulative_R_vertices_above_thresh = 0;
-
-% Distinguish between left and right hemisphere ROIs
 LHscout = horzcat(cfg_main.atlas.Scouts(RoiIndices(1:2:end)).Vertices);
 RHscout = horzcat(cfg_main.atlas.Scouts(RoiIndices(2:2:end)).Vertices);
 
-% Extract amplitude values for left and right regions
 LHvals = ImageGridAmp(LHscout, :);
 RHvals = ImageGridAmp(RHscout, :);
 
-% Determine thresholds based on max value across both hemispheres
 ROIMax = max([LHvals(:); RHvals(:)]);
 threshvals = linspace(0, ROIMax, divs);
 
-if divs ==1
-    disp('divs should be greater than 1.')
-end
+weighted_li = 0;
+num_threshvals = 0;
 
-% Perform bootstrapping for each threshold
+cumulative_L_vertices_above_thresh = 0;
+cumulative_R_vertices_above_thresh = 0;
+
+% Initialize a matrix to store all bootstrap LI distributions across thresholds
+All_TB_LIs_weighted = [];
+
 for thresh_idx = 1:numel(threshvals)
-    
     thresh = threshvals(thresh_idx);
     l_above_thresh = LHvals >= thresh;
     r_above_thresh = RHvals >= thresh;
     
-    % Ensure both hemispheres have enough voxels above threshold
     if sum(l_above_thresh(:)) < MIN_NUM_THRESH_VOXELS && sum(r_above_thresh(:)) < MIN_NUM_THRESH_VOXELS
-        break; % Stop if not enough voxels
+        break; % Not enough voxels above threshold
     end
     
     cumulative_L_vertices_above_thresh = cumulative_L_vertices_above_thresh + sum(l_above_thresh(:));
     cumulative_R_vertices_above_thresh = cumulative_R_vertices_above_thresh + sum(r_above_thresh(:));
     
-    % Resample and compute LI for the current threshold
+    % Compute bootstrap distribution for this threshold
     TB_LIs = bootstrapLI(l_above_thresh, r_above_thresh, n_resampling, RESAMPLE_RATIO);
     
-    % Weight the LI by threshold index (heavier weight for higher thresholds)
+    % Accumulate weighted LI
     weighted_li = weighted_li + mean(TB_LIs) * thresh_idx;
     num_threshvals = thresh_idx;
+    
+    % Store the weighted TB_LIs for CI calculation
+    % We store TB_LIs * thresh_idx so that later we can sum them all and then divide by sum(1:num_threshvals).
+    All_TB_LIs_weighted = [All_TB_LIs_weighted, TB_LIs * thresh_idx];
 end
 
-% Normalize the weighted LI by the sum of threshold indices
 if num_threshvals > 0
     weighted_li = (weighted_li / sum(1:num_threshvals)) * 100;
 end
 
-% Adjust final vertex counts to reflect average contribution if needed
-L_vertices_above_thresh = round(cumulative_L_vertices_above_thresh / num_threshvals);
-R_vertices_above_thresh = round(cumulative_R_vertices_above_thresh / num_threshvals);
+L_vertices_above_thresh = round(cumulative_L_vertices_above_thresh / max(num_threshvals,1));
+R_vertices_above_thresh = round(cumulative_R_vertices_above_thresh / max(num_threshvals,1));
 
+% Compute the combined bootstrap distribution for the final weighted LI
+if num_threshvals > 0
+    CombinedLI = (sum(All_TB_LIs_weighted, 2) / sum(1:num_threshvals)) * 100;
+    % Calculate 95% CI from CombinedLI
+    CI = prctile(CombinedLI, [2.5 97.5]);
+else
+    CI = [NaN NaN]; % No CI if no thresholds were processed
+end
 end
 
 function TB_LIs = bootstrapLI(Lvals, Rvals, n_samples, resample_ratio)
@@ -668,8 +714,8 @@ end
 
 end
 
-function [Summ_LI, LI_label_out, L_count, R_count, threshold] = processLI_ROIs(cfg_LI)
-% processLI_ROIs Computes the Laterality Index (LI) for each ROI defined in cfg_LI.
+function [Summ_LI, LI_label_out, L_count, R_count, threshold] = computeLI_Svalue_Count(cfg_LI)
+% computeLI_Svalue_Count Computes the Laterality Index (LI) for each ROI defined in cfg_LI.
 %
 % INPUT:
 %   cfg_LI: A struct containing configuration and data.
@@ -755,10 +801,6 @@ for ii = 1:length(RoiIndices)
             threshold = Ratio4Threshold * ROIMax;
     end
     
-    % Calculate Laterality Index based on method
-    %     ind_L = LHvals > threshold;
-    %     ind_R = RHvals > threshold;
-    
     switch method
         case 1
             % Power-based LI calculation
@@ -793,40 +835,6 @@ for ii = 1:length(RoiIndices)
 end
 end
 
-%     if method == 1
-%
-%         pow_left  = sum(LHvals(LHvals(:) > threshold));
-%         pow_left = pow_left/size(LHvals,1);
-%
-%         pow_right = sum(RHvals(RHvals(:) > threshold));
-%         pow_right = pow_right/size(RHvals,1);
-%
-%         LI_ROIval = 100 * ((pow_left - pow_right) / (pow_left + pow_right));
-%
-%         L_count(ii) = pow_left;
-%         R_count(ii) = pow_right;
-%
-%         % Store the results
-%         Summ_LI(ii) = LI_ROIval;
-%
-%     else
-%
-%         % Count the number of significant voxels in each hemisphere
-%         L_ROIcount = sum(LHvals(:) > threshold);
-%         R_ROIcount = sum(RHvals(:) > threshold);
-%
-%         LI_ROIcount = 100 * ((L_ROIcount - R_ROIcount) / (L_ROIcount + R_ROIcount));
-%
-%         L_count(ii) = L_ROIcount;
-%         R_count(ii) = R_ROIcount;
-%
-%         % Store the results
-%         Summ_LI(ii) = LI_ROIcount;
-%     end
-%
-%     LI_label_out{ii} = s2;
-
-
 function plot_LI(cfg_LI)
 
 figure;
@@ -841,9 +849,9 @@ xlim([1 length(val)])
 xlabel('Mean Temporal Windows (sec)');
 switch cfg_LI.method
     case 1
-        title('SMag');
+        title('Source Magnitude');
     case 2
-        title('Counting');
+        title('Vertex Count');
     case 3
         title('Bootstrap');
 end
@@ -854,39 +862,87 @@ legend(cfg_LI.RoiLabels', 'Location', 'best');
 end
 
 function report_tLI(cfg_LI)
-% Calculate maximum LI values and their corresponding indices
-[mx, idx] = max(cfg_LI.final_LI);
+% REPORT_TLI evaluates each ROI separately, finding the max LI value, the corresponding
+% time interval, the median LI, and optionally the 95% CI at the max LI time point if
+% bootstrapping was used.
 
-% Calculate median LI values for each ROI
-md = nanmedian(cfg_LI.final_LI);
+[W, R] = size(cfg_LI.final_LI);
 
-disp('                 ')
-% Create table columns
-a = table(cfg_LI.RoiLabels');
-a.Properties.VariableNames{'Var1'} = 'ROI';
-b = table(mx');
-b.Properties.VariableNames{'Var1'} = 'Max_LI';
-c = table(cfg_LI.windows(idx,:));
-c.Properties.VariableNames{'Var1'} = 'Max_Interval_sec';
-d = table(md');
-d.Properties.VariableNames{'Var1'} = 'Median_LI';
+final_table = table();
 
-% Combine columns into one table
-final_table = [a, b, d, c];  % Adding the median column
+for r = 1:R
+    % Extract LI values for the current ROI
+    roi_li = cfg_LI.final_LI(:, r);
+    
+    % Find max LI and corresponding window index
+    [mx, max_win] = max(roi_li);
+    md = nanmedian(roi_li);
+    
+    % Extract the interval for the max LI window
+    max_interval = cfg_LI.windows(max_win, :);
+    interval_str = sprintf('[%.2f, %.2f]', max_interval(1), max_interval(2));
+    
+    % Basic columns: ROI, Max_LI, Median_LI, and merged interval column
+    ROI_label = cfg_LI.RoiLabels{r};
+    a = table({ROI_label}, 'VariableNames', {'ROI'});
+    b = table(mx, 'VariableNames', {'Max_LI'});
+    d = table(md, 'VariableNames', {'Median_LI'});
+    c = table({interval_str}, 'VariableNames', {'Max_Interval'});
+    
+    new_row = [a, b, d, c];
+    
+    % If bootstrapping was used, add CI information for this ROI at max_win
+    if cfg_LI.method == 3
+        roi_ci = squeeze(cfg_LI.final_CI(max_win, r, :));
+        lower_CI_95 = roi_ci(1);
+        upper_CI_95 = roi_ci(2);
+        
+        ci_t = table(lower_CI_95, upper_CI_95, ...
+            'VariableNames', {'Lower_CI_95', 'Upper_CI_95'});
+        
+        new_row = [new_row, ci_t];
+    end
+    
+    final_table = [final_table; new_row];
+end
+
+disp(' ')
+disp('Summary of LI Results per ROI:')
 disp(final_table)
+
+if cfg_LI.method == 3
+    disp('Note: The CI_95 represents the 95% confidence interval of the LI estimate.')
+    disp('It indicates the range within which the true LI value would lie in about 95% of repeated bootstrap samples.')
+end
 
 end
 
 function report_LI(cfg_LI)
-
-% Optional: Display results
-disp('                 ')
-a = table(cfg_LI.RoiLabels'); a.Properties.VariableNames{'Var1'} = 'ROI';
-b = table(cfg_LI.Summ_LI'); b.Properties.VariableNames{'Var1'} = 'LI';
-c = table([cfg_LI.L_count;cfg_LI.R_count]'); c.Properties.VariableNames{'Var1'} = 'Left_vs_right';
-d = [a,b,c];
-disp(d)
-
+switch cfg_LI.method
+    case {1,2}
+        % Optional: Display results
+        disp('                 ')
+        a = table(cfg_LI.RoiLabels'); a.Properties.VariableNames{'Var1'} = 'ROI';
+        b = table(cfg_LI.Summ_LI'); b.Properties.VariableNames{'Var1'} = 'LI';
+        c = table([cfg_LI.L_count;cfg_LI.R_count]'); c.Properties.VariableNames{'Var1'} = 'Left_vs_right';
+        d = [a,b,c];
+        disp(d)
+    case 3     
+        % Convert each to a column (4x1)
+        Summ_LI = cfg_LI.Summ_LI(:);
+        RoiLabels = cfg_LI.RoiLabels(:);
+        L_vertices_total = cfg_LI.L_count(:);
+        
+        % Do the same for other variables like CI_strings, CI_widths, R_vertices_total, etc.
+        % Assuming all other arrays are also 1x4, just transpose them:
+        CI_strings = cfg_LI.CI_strings(:);
+        CI_widths = cfg_LI.CI_widths(:);
+        R_vertices_total = cfg_LI.R_count(:);
+        
+        T = table(RoiLabels, Summ_LI, CI_strings, CI_widths, L_vertices_total, R_vertices_total, ...
+            'VariableNames', {'ROI', 'LI', 'CI_95', 'CI_Width', 'L_Vertices', 'R_Vertices'});
+        disp(T);
+end
 end
 
 function export_LI(cfg_LI)
@@ -905,46 +961,88 @@ sname = cfg_LI.sname;
 
 switch cfg_LI.method
     case 1
-        mtd_label = 'SourceMag';
+        mtd_label = 'S';
     case 2
-        mtd_label = 'Counting';
+        mtd_label = 'C';
     case 3
-        mtd_label = 'Bootstrapping';
+        mtd_label = 'B';
 end
 
 % Define the filename based on the Tinterval
 if cfg_LI.Tinterval == 2
-    filename = fullfile(folderPath, ['/LI_', mtd_label, '_', sname, '_thresh', num2str(cfg_LI.Ratio4Threshold), '.xls']);
+    switch cfg_LI.method
+        case {1,2}
+            filename = fullfile(folderPath, ['/LI_', mtd_label, '_', sname, '_Th', num2str(cfg_LI.Ratio4Threshold), '.xls']);
+        case 3
+            filename = fullfile(folderPath, ['/LI_', mtd_label, '_', sname, '.xls']);
+    end
 else
-    filename = fullfile(folderPath, ['/LI_', mtd_label, '_', sname, '_', 'Interval_', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '_thresh', num2str(cfg_LI.Ratio4Threshold), '.xls']);
+    switch cfg_LI.method
+        case {1,2}
+            filename = fullfile(folderPath, ['/LI', mtd_label, '_', sname, ' ', 'T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '_Thre ', num2str(cfg_LI.Ratio4Threshold), '.xls']);
+        case 3
+            filename = fullfile(folderPath, ['/LI', mtd_label, '_', sname, ' ', 'T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '.xls']);
+    end
 end
 
 %%
 tempfile = fopen(filename, 'w');
 
-% Print headers
-fprintf(tempfile, 'ROI\tLI\tLeft_count\tRight_count\n');
-
-% Ensure L_count and R_count are column vectors
-L_count1 = cfg_LI.L_count(:);
-R_count1 = cfg_LI.R_count(:);
-
-% Printing the labels, LI values, L_count, and R_count on separate lines
-for i = 1:length(cfg_LI.LI_label_out)
-    fprintf(tempfile, '%s\t', cfg_LI.LI_label_out{i});
-    fprintf(tempfile, '%f\t', cfg_LI.Summ_LI(i));
-    fprintf(tempfile, '%d\t', L_count1(i));
-    fprintf(tempfile, '%d\n', R_count1(i));
+switch cfg_LI.method
+    
+    case {1,2}
+        
+        % Print headers
+        fprintf(tempfile, 'ROI\tLI\tLeft_count\tRight_count\n');
+        
+        % Ensure L_count and R_count are column vectors
+        L_count1 = cfg_LI.L_count(:);
+        R_count1 = cfg_LI.R_count(:);
+        
+        % Printing the labels, LI values, L_count, and R_count on separate lines
+        for i = 1:length(cfg_LI.LI_label_out)
+            fprintf(tempfile, '%s\t', cfg_LI.LI_label_out{i});
+            fprintf(tempfile, '%f\t', cfg_LI.Summ_LI(i));
+            fprintf(tempfile, '%d\t', L_count1(i));
+            fprintf(tempfile, '%d\n', R_count1(i));
+        end
+        
+        % Printing the threshold
+        fprintf(tempfile, 'Threshold\t%f\n', cfg_LI.threshold);
+        
+    case 3
+        
+        % Pre-compute a formatted CI string and CI width for each ROI
+        LI_label_out = cfg_LI.LI_label_out;
+        
+        % Updated header: now includes CI and CI width
+        fprintf(tempfile, 'ROI\tLI\tCI\tCI_Width\tL_Vertices\tR_Vertices\n');
+        
+        TotROI = length(LI_label_out);
+        for i = 1:TotROI
+            fprintf(tempfile, '%s\t%f\t%s\t%f\t%d\t%d\n', ...
+                LI_label_out{i}, cfg_LI.Summ_LI(i), cfg_LI.CI_strings{i}, cfg_LI.CI_widths(i), cfg_LI.L_count(i), cfg_LI.R_count(i));
+        end
+        
+        % Print headers
+        fprintf(tempfile, 'ROI\tLI\tLeft_count\tRight_count\n');
+        
+        % Ensure L_count and R_count are column vectors
+        L_count1 = cfg_LI.L_count(:);
+        R_count1 = cfg_LI.R_count(:);
+        
+        % Printing the labels, LI values, L_count, and R_count on separate lines
+        for i = 1:length(cfg_LI.LI_label_out)
+            fprintf(tempfile, '%s\t', cfg_LI.LI_label_out{i});
+            fprintf(tempfile, '%f\t', cfg_LI.Summ_LI(i));
+            fprintf(tempfile, '%d\t', L_count1(i));
+            fprintf(tempfile, '%d\n', R_count1(i));
+        end
 end
 
 % Adding an extra newline for separation
 fprintf(tempfile, '\n');
-
-% Printing the threshold
-fprintf(tempfile, 'Threshold\t%f\n', cfg_LI.threshold);
-
 fclose(tempfile);
-
 %
 % Display the path to the saved file
 disp(['Results saved to: ' filename]);
