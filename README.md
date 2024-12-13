@@ -10,7 +10,7 @@ The pipeline provides several methods for computing a Lateralization Index (LI):
 - **Counting Method**: Counts the number of suprathreshold vertices in left vs. right hemispheres.
 - **Bootstrapping Method**: Uses resampling to obtain LI confidence intervals (95% CI), providing estimates of uncertainty around the LI measurement.
 
-## Time interval selection
+## Time intervals
 
 You can also select different time intervals for analysis:
 - **Specific Time Interval**: Analyze a predefined time range.
