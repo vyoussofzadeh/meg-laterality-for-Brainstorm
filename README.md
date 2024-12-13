@@ -27,6 +27,16 @@ By leveraging the HCP atlas, the pipeline offers a comprehensive and fine-graine
 
 For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
 
+## Thresholding Mechanism
+
+Thresholding plays a crucial role in determining which brain regions are active and contributes to the calculation of LI. The pipeline provides three threshold types:
+
+- **Global-max**: The threshold is set based on the maximum amplitude observed across all time points and all regions.
+- **Time-max**: The threshold is based on the maximum amplitude during a specific time of interest across all regions.
+- **Region-max**: The threshold is determined by the maximum amplitude within each region of interest during the time of interest.
+
+Users can adjust the threshold ratio to control the sensitivity of region inclusion in the LI calculation. This ratio is applied to the determined maximum value according to the selected threshold type.
+
 ## Prerequisites
 
 - **MATLAB**: Tested on recent MATLAB versions.
