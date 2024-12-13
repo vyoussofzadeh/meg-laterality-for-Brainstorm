@@ -24,7 +24,7 @@ This pipeline uses the **Human Connectome Project (HCP) atlas** to define Region
 - **HCP Atlas**: A multimodal atlas aligned to symmetrical MNI space, ensuring fair hemisphere-to-hemisphere comparisons.
 - **ROIs**: The code groups bilateral ROIs into categories (e.g., Angular, Frontal, Temporal, Lateral). Users can focus on specific ROI sets relevant to their research questions.
 
-By leveraging the HCP atlas, the pipeline offers a comprehensive and fine-grained approach to assessing hemispheric dominance across various cortical regions. For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
+By leveraging the HCP atlas, the pipeline offers a fine-grained approach to assessing hemispheric dominance across various cortical regions. For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
 
 ## Thresholding Mechanism
 
