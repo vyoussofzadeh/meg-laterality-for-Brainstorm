@@ -101,6 +101,12 @@ sProcess.options.threshold.Value = [];
 sProcess.options.threshtype.Comment = 'Threshold type:';
 sProcess.options.threshtype.Type    = 'combobox';
 sProcess.options.threshtype.Value   = {1, {'Global-max', 'Time-max', 'Region-max'}};
+
+% Note about the threshold
+sProcess.options.threshold_for_windows.Comment = 'Note: for window-based approach, only global region-max (across time windows) are used.';
+sProcess.options.threshold_for_windows.Type = 'label';
+sProcess.options.threshold_for_windows.Value = {};
+
 sProcess.options.ratio4threshold.Comment = 'Threshold ratio (%):';
 sProcess.options.ratio4threshold.Type = 'value';
 sProcess.options.ratio4threshold.Value = {20, '%', 0, 100, 1, 1};
