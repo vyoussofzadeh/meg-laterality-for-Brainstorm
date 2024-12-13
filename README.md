@@ -17,7 +17,7 @@ You can also select different time intervals for analysis:
 - **Averaged Time Interval**: Compute average activity across a chosen time segment.
 - **Window-based Analysis**: Segment data into overlapping or non-overlapping windows, computing LI for each segment to capture temporal evolution of lateralization.
 
-## ROIs and Atlas
+## Atlas (ROIs)
 
 This pipeline uses the **Human Connectome Project (HCP) atlas** to define Regions of Interest (ROIs). The HCP MMP1.0 atlas is a high-resolution cortical parcellation providing detailed anatomical and functional organization of the cerebral cortex. Key points:
 
