@@ -43,4 +43,4 @@ For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](htt
 2. **Add to MATLAB Path:**:
    ```bash
    addpath('path_to_meg-laterality-for-Brainstorm');
-  savepath;
+   savepath;
