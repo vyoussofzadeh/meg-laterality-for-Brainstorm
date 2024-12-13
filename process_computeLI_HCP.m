@@ -1012,7 +1012,7 @@ switch cfg_LI.method
         mtd_label = 'C';
     case 3
         mtd_label = 'B';
-        sLI.final_CI     = cfg_LI.final_CI;
+        sLI.ConfInt     = cfg_LI.final_CI;
         sLI.n_resampling = cfg_LI.n_resampling;
         sLI.divs         = cfg_LI.divs;
 end
@@ -1154,3 +1154,4 @@ function plotOption = createPlotOption()
 % Define the option to enable/disable plotting
 plotOption = struct('Comment', 'Enable Plotting', 'Type', 'checkbox', 'Value', 1);
 end
+
