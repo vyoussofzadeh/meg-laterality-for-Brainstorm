@@ -92,3 +92,16 @@ If you prefer scripting, call the process directly in MATLAB:
     'ratio4threshold', 20, ...
     'savedir',      '/path/to/save/dir', ...
     'sname',        'analysis_results');
+
+
+### Interpreting Results
+
+- **LI**: A positive LI value suggests left-hemisphere dominance, while a negative LI suggests right-hemisphere dominance.
+- **CI_95 (Bootstrapping)**: The 95% confidence interval provides an estimate of the uncertainty in LI. A narrower CI indicates more stable results.
+- **Window-based Analysis**: By examining LI across multiple time windows, you can understand how hemispheric dominance changes over time or in response to different tasks or stimuli.
+
+### Support and Contributions
+
+If you have questions, encounter issues, or would like to contribute improvements:
+- **Issues**: Open an issue on this repository for troubleshooting or feature requests.
+- **Pull Requests**: Contributions are welcome via pull requests. Please ensure your code is well-documented and tested.
