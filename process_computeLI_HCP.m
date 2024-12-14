@@ -22,10 +22,11 @@ eval(macro_method);
 
 end
 
-%% ===== GET DESCRIPTION =====
 function sProcess = GetDescription() %#ok<DEFNU>
+% PROCESS_COMPUTELI_HCP: Compute the Lateralization Index (LI) on HCP atlas-based source data.
+% Provides several methods (source magnitude, counting, bootstrapping) and time interval strategies (specific, averaged, window-based).
+% Supports thresholding and optional saving of results as .mat and plotting.
 
-% Process Description
 sProcess.Comment     = 'Compute LI (HCP atlas, surface-based)';
 sProcess.Category    = 'Custom';
 sProcess.SubGroup    = 'Sources';
@@ -37,7 +38,13 @@ sProcess.nInputs     = 1;
 sProcess.nMinFiles   = 1;
 
 %% Time Window Parameters
-sProcess.options.timeParams.Comment = '<B>Time Window Parameters:</B>';
+% Heading as a label
+sProcess.options.timeParamsLabel.Comment = '<B>Time Window Parameters:</B>';
+sProcess.options.timeParamsLabel.Type    = 'label';
+sProcess.options.timeParamsLabel.Value   = {};
+
+% Group to hold related options (no special formatting here)
+sProcess.options.timeParams.Comment = '';
 sProcess.options.timeParams.Type    = 'group';
 sProcess.options.timeParams.Value   = [];
 
@@ -45,12 +52,18 @@ sProcess.options.twindow.Comment    = 'Window length (ms): For window-based meth
 sProcess.options.twindow.Type       = 'value';
 sProcess.options.twindow.Value      = {300, 'ms', 100, 1000, 1};
 
-sProcess.options.toverlap.Comment   = 'Overlap between windows (%): For window-based analysis, what percentage of overlap between consecutive windows.';
+sProcess.options.toverlap.Comment   = 'Overlap between windows (%): For window-based analysis, the percentage overlap between consecutive windows.';
 sProcess.options.toverlap.Type      = 'value';
 sProcess.options.toverlap.Value     = {50, '%', 0, 100, 1};
 
 %% LI Computation Methods
-sProcess.options.liMethods.Comment  = '<B>Lateralization Index Methods:</B>';
+% Heading as a label
+sProcess.options.liMethodsLabel.Comment = '<B>Lateralization Index Methods:</B>';
+sProcess.options.liMethodsLabel.Type    = 'label';
+sProcess.options.liMethodsLabel.Value   = {};
+
+% Group
+sProcess.options.liMethods.Comment  = '';
 sProcess.options.liMethods.Type     = 'group';
 sProcess.options.liMethods.Value    = [];
 
@@ -67,7 +80,13 @@ sProcess.options.methodBootstrap.Type    = 'checkbox';
 sProcess.options.methodBootstrap.Value   = 0;
 
 %% Bootstrap Parameters
-sProcess.options.bootstrapParams.Comment = '<B>Bootstrap Parameters:</B>';
+% Heading as a label
+sProcess.options.bootstrapParamsLabel.Comment = '<B>Bootstrap Parameters:</B>';
+sProcess.options.bootstrapParamsLabel.Type    = 'label';
+sProcess.options.bootstrapParamsLabel.Value   = {};
+
+% Group
+sProcess.options.bootstrapParams.Comment = '';
 sProcess.options.bootstrapParams.Type    = 'group';
 sProcess.options.bootstrapParams.Value   = [];
 
@@ -84,24 +103,39 @@ sProcess.options.RESAMPLE_RATIO.Type    = 'value';
 sProcess.options.RESAMPLE_RATIO.Value   = {75, '%', 0, 100, 1, 1};
 
 %% Time Interval Selection
-sProcess.options.window.Comment = '<B>Time Interval Analysis:</B> Choose how time is handled.';
+% Label for interval analysis
+sProcess.options.timeIntervalLabel.Comment = '<B>Time Interval Analysis:</B> Choose how time is handled.';
+sProcess.options.timeIntervalLabel.Type    = 'label';
+sProcess.options.timeIntervalLabel.Value   = {};
+
+sProcess.options.window.Comment = '';
 sProcess.options.window.Type = 'combobox';
 sProcess.options.window.Value = {1, {'Specific Time Interval', 'Averaged Time Interval', 'Window based'}};
 
-% If Window-based method is chosen, user defines a specific time interval.
+% Specific time interval setting
 sProcess.options.poststim_custom.Comment = 'Enter specific time interval: Only used if "Specific Time Interval" is selected.';
 sProcess.options.poststim_custom.Type    = 'poststim';
 sProcess.options.poststim_custom.Value   = [];
 
 %% Effect Type
-sProcess.options.effect.Comment = '<B>Effect Type:</B> Choose how to process the data (positive, negative, absolute values).';
+% Label for effect type
+sProcess.options.effectLabel.Comment = '<B>Effect Type:</B> Choose how to process the data (positive, negative, absolute values).';
+sProcess.options.effectLabel.Type    = 'label';
+sProcess.options.effectLabel.Value   = {};
+
+sProcess.options.effect.Comment = '';
 sProcess.options.effect.Type = 'combobox';
 sProcess.options.effect.Value = {1, {'Positive values', 'Negative values', 'Absolute values'}};
 
 %% Threshold Settings
-sProcess.options.threshold.Comment = '<B>Threshold Settings:</B>';
-sProcess.options.threshold.Type = 'group';
-sProcess.options.threshold.Value = [];
+% Label for threshold settings
+sProcess.options.thresholdLabel.Comment = '<B>Threshold Settings:</B>';
+sProcess.options.thresholdLabel.Type    = 'label';
+sProcess.options.thresholdLabel.Value   = {};
+
+sProcess.options.threshold.Comment = '';
+sProcess.options.threshold.Type    = 'group';
+sProcess.options.threshold.Value   = [];
 
 sProcess.options.threshtype.Comment = ['Threshold type: Select how to determine the max amplitude for thresholding. ' ...
                                        'In window-based approaches, global maxima (compute_globmax_rois) are used.'];
@@ -118,6 +152,11 @@ sProcess.options.ratio4threshold.Type = 'value';
 sProcess.options.ratio4threshold.Value = {20, '%', 0, 100, 1, 1};
 
 %% Output Settings
+% Label for output settings
+sProcess.options.outputLabel.Comment = '<B>Output Settings:</B>';
+sProcess.options.outputLabel.Type    = 'label';
+sProcess.options.outputLabel.Value   = {};
+
 sProcess.options.savedir.Comment = 'Saving Dir.: Directory where results will be saved.';
 sProcess.options.savedir.Type    = 'text';
 sProcess.options.savedir.Value   = '';
@@ -141,6 +180,7 @@ sProcess.options.noteApplicability.Type = 'label';
 sProcess.options.noteApplicability.Value = {};
 
 end
+
 
 
 %% ===== FORMAT COMMENT =====
