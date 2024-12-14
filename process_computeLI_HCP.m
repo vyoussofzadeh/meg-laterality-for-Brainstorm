@@ -1,26 +1,22 @@
 function varargout = process_computeLI_HCP(varargin )
-% PROCESS_FT_SOURCEANALYSIS Call FieldTrip function ft_sourceanalysis (DICS)
 
-% @=============================================================================
-% This function is part of the Brainstorm software:
-% https://neuroimage.usc.edu/brainstorm
+% PROCESS_COMPUTELI_HCP: Compute the Lateralization Index (LI) using various methods (source magnitude, counting, bootstrapping)
+% on MEG source-level data projected onto the HCP atlas.
 %
-% Copyright (c) University of Southern California & McGill University
-% This software is distributed under the terms of the GNU General Public License
-% as published by the Free Software Foundation. Further details on the GPLv3
-% license can be found at http://www.gnu.org/copyleft/gpl.html.
+% This process integrates into Brainstorm's processing pipeline and allows selecting:
+%   - Time interval method (specific, averaged, window-based)
+%   - LI computation method (source magnitude, counting, bootstrapping)
+%   - Thresholding approach (global-max, time-max, region-max)
+%   - Additional output options such as saving .mat files or generating plots for the window-based approach.
 %
-% FOR RESEARCH PURPOSES ONLY. THE SOFTWARE IS PROVIDED "AS IS," AND THE
-% UNIVERSITY OF SOUTHERN CALIFORNIA AND ITS COLLABORATORS DO NOT MAKE ANY
-% WARRANTY, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF
-% MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, NOR DO THEY ASSUME ANY
-% LIABILITY OR RESPONSIBILITY FOR THE USE OF THIS SOFTWARE.
+% REQUIREMENTS:
+%   - Brainstorm environment
+%   - MEG source results
+%   - HCP MMP1.0 atlas integrated into the subject anatomy
 %
-% For more information type "brainstorm license" at command prompt.
-% =============================================================================@
-%
-% Authors: Vahab YoussofZadeh, 2024
-% last update: 12/13/24: Window-based LI analysis was added.
+% Author: Vahab YoussofZadeh, 2024
+% Last Update: 12/13/24
+% Changes: Window-based LI analysis added.
 
 eval(macro_method);
 
@@ -29,8 +25,8 @@ end
 %% ===== GET DESCRIPTION =====
 function sProcess = GetDescription() %#ok<DEFNU>
 
-% Process description
-sProcess.Comment     = 'Compute LI, surface-based, HCP atlas';
+% Process Description
+sProcess.Comment     = 'Compute LI (HCP atlas, surface-based)';
 sProcess.Category    = 'Custom';
 sProcess.SubGroup    = 'Sources';
 sProcess.Index       = 337;
@@ -40,96 +36,107 @@ sProcess.OutputTypes = {'results'};
 sProcess.nInputs     = 1;
 sProcess.nMinFiles   = 1;
 
-% Time window parameters
-sProcess.options.timeParams.Comment = 'Time Window Parameters:';
+%% Time Window Parameters
+sProcess.options.timeParams.Comment = '<B>Time Window Parameters:</B>';
 sProcess.options.timeParams.Type    = 'group';
 sProcess.options.timeParams.Value   = [];
-sProcess.options.twindow.Comment    = 'Window length (ms):';
-sProcess.options.twindow.Type       = 'value';
-sProcess.options.twindow.Value      = {300, 'ms', 100, 1000, 1};  % Min 100, Max 1000, Step 1
-sProcess.options.toverlap.Comment   = 'Overlap between windows (%):';
-sProcess.options.toverlap.Type      = 'value';
-sProcess.options.toverlap.Value     = {50, '', 0, 100, 1};
 
-% LI computation methods
-sProcess.options.liMethods.Comment  = 'Lateralization Index Methods:';
+sProcess.options.twindow.Comment    = 'Window length (ms): For window-based methods, defines the length of each time window.';
+sProcess.options.twindow.Type       = 'value';
+sProcess.options.twindow.Value      = {300, 'ms', 100, 1000, 1};
+
+sProcess.options.toverlap.Comment   = 'Overlap between windows (%): For window-based analysis, what percentage of overlap between consecutive windows.';
+sProcess.options.toverlap.Type      = 'value';
+sProcess.options.toverlap.Value     = {50, '%', 0, 100, 1};
+
+%% LI Computation Methods
+sProcess.options.liMethods.Comment  = '<B>Lateralization Index Methods:</B>';
 sProcess.options.liMethods.Type     = 'group';
 sProcess.options.liMethods.Value    = [];
-sProcess.options.methodSource.Comment = 'Source Magnitude Method';
+
+sProcess.options.methodSource.Comment = 'Source Magnitude Method: Compute LI based on source amplitude values.';
 sProcess.options.methodSource.Type    = 'checkbox';
 sProcess.options.methodSource.Value   = 0;
-sProcess.options.methodCounting.Comment = 'Counting Method';
+
+sProcess.options.methodCounting.Comment = 'Counting Method: Compute LI based on counting suprathreshold vertices.';
 sProcess.options.methodCounting.Type    = 'checkbox';
 sProcess.options.methodCounting.Value   = 0;
-sProcess.options.methodBootstrap.Comment = 'Bootstrapping Method';
+
+sProcess.options.methodBootstrap.Comment = 'Bootstrapping Method: Compute LI with confidence intervals via resampling.';
 sProcess.options.methodBootstrap.Type    = 'checkbox';
 sProcess.options.methodBootstrap.Value   = 0;
 
-% Bootstrap specific parameters
-sProcess.options.bootstrapParams.Comment = 'Bootstrap Parameters:';
+%% Bootstrap Parameters
+sProcess.options.bootstrapParams.Comment = '<B>Bootstrap Parameters:</B>';
 sProcess.options.bootstrapParams.Type    = 'group';
 sProcess.options.bootstrapParams.Value   = [];
-sProcess.options.divs.Comment = 'Number of divisions:';
+
+sProcess.options.divs.Comment = 'Number of divisions: For bootstrapping LI, how many threshold divisions to consider.';
 sProcess.options.divs.Type    = 'value';
 sProcess.options.divs.Value   = {10, '', 1, 100, 1};
-sProcess.options.n_resampling.Comment = 'Number of resampling iterations:';
+
+sProcess.options.n_resampling.Comment = 'Number of resampling iterations: More iterations yield more stable CI at the cost of computation time.';
 sProcess.options.n_resampling.Type    = 'value';
 sProcess.options.n_resampling.Value   = {200, '', 1, 1000, 1};
-sProcess.options.RESAMPLE_RATIO.Comment = 'Resample ratio (%):';
+
+sProcess.options.RESAMPLE_RATIO.Comment = 'Resample ratio (%): Percentage of data to resample in each bootstrap iteration.';
 sProcess.options.RESAMPLE_RATIO.Type    = 'value';
 sProcess.options.RESAMPLE_RATIO.Value   = {75, '%', 0, 100, 1, 1};
 
-% Time interval selection
-sProcess.options.window.Comment = 'Time Interval Analysis:';
+%% Time Interval Selection
+sProcess.options.window.Comment = '<B>Time Interval Analysis:</B> Choose how time is handled.';
 sProcess.options.window.Type = 'combobox';
 sProcess.options.window.Value = {1, {'Specific Time Interval', 'Averaged Time Interval', 'Window based'}};
 
-% Window
-sProcess.options.poststim.Comment = 'Enter specific time interval:';
-sProcess.options.poststim.Type    = 'poststim';
-sProcess.options.poststim.Value   = [];
+% If Window-based method is chosen, user defines a specific time interval.
+sProcess.options.poststim_custom.Comment = 'Enter specific time interval: Only used if "Specific Time Interval" is selected.';
+sProcess.options.poststim_custom.Type    = 'poststim';
+sProcess.options.poststim_custom.Value   = [];
 
-% Specify effect
-sProcess.options.effect.Comment = 'Effect Type:';
+%% Effect Type
+sProcess.options.effect.Comment = '<B>Effect Type:</B> Choose how to process the data (positive, negative, absolute values).';
 sProcess.options.effect.Type = 'combobox';
 sProcess.options.effect.Value = {1, {'Positive values', 'Negative values', 'Absolute values'}};
 
-% Threshold settings
-sProcess.options.threshold.Comment = 'Threshold Settings:';
+%% Threshold Settings
+sProcess.options.threshold.Comment = '<B>Threshold Settings:</B>';
 sProcess.options.threshold.Type = 'group';
 sProcess.options.threshold.Value = [];
-sProcess.options.threshtype.Comment = 'Threshold type:';
+
+sProcess.options.threshtype.Comment = ['Threshold type: Select how to determine the max amplitude for thresholding. ' ...
+                                       'In window-based approaches, global maxima (compute_globmax_rois) are used.'];
 sProcess.options.threshtype.Type    = 'combobox';
 sProcess.options.threshtype.Value   = {1, {'Global-max', 'Time-max', 'Region-max'}};
 
-% Note about the threshold
-sProcess.options.threshold_for_windows.Comment = 'Note: for window-based approach, only global region-max (across time windows) are used.';
+sProcess.options.threshold_for_windows.Comment = ['<I>Note:</I> For the window-based approach, thresholds rely on global maxima ' ...
+                                                  '(from compute_globmax_rois) to ensure consistency across windows.'];
 sProcess.options.threshold_for_windows.Type = 'label';
 sProcess.options.threshold_for_windows.Value = {};
 
-sProcess.options.ratio4threshold.Comment = 'Threshold ratio (%):';
+sProcess.options.ratio4threshold.Comment = 'Threshold ratio (%): Percentage of the determined max value used as threshold.';
 sProcess.options.ratio4threshold.Type = 'value';
 sProcess.options.ratio4threshold.Value = {20, '%', 0, 100, 1, 1};
 
-% Output settings
-sProcess.options.savedir.Comment = 'Saving Dir.:';
+%% Output Settings
+sProcess.options.savedir.Comment = 'Saving Dir.: Directory where results will be saved.';
 sProcess.options.savedir.Type    = 'text';
-sProcess.options.savedir.Value   = ''; % Default value can be empty or a specific path
-sProcess.options.sname.Comment = 'Saving filename:';
+sProcess.options.savedir.Value   = '';
+
+sProcess.options.sname.Comment = 'Saving filename: Base name for output files.';
 sProcess.options.sname.Type    = 'text';
-sProcess.options.sname.Value   = ''; % Default value can be empty or a specific name
+sProcess.options.sname.Value   = '';
 
-% New options for saving as .mat and plotting results
-sProcess.options.saveMat.Comment = 'Save results as .mat file';
+% Additional options
+sProcess.options.saveMat.Comment = 'Save results as .mat file (window-based only).';
 sProcess.options.saveMat.Type    = 'checkbox';
-sProcess.options.saveMat.Value   = 0;  % Not selected by default
+sProcess.options.saveMat.Value   = 0;
 
-sProcess.options.plotResults.Comment = 'Enable Plotting';
+sProcess.options.plotResults.Comment = 'Enable Plotting (window-based only). If selected, temporal evolution of LI is plotted.';
 sProcess.options.plotResults.Type    = 'checkbox';
-sProcess.options.plotResults.Value   = 1;  % Selected by default
+sProcess.options.plotResults.Value   = 1;
 
-% Note about the applicability of options
-sProcess.options.noteApplicability.Comment = 'Note: Saving as .mat and plotting options are applicable only for the Window-based method.';
+sProcess.options.noteApplicability.Comment = ['<I>Note:</I> The .mat saving and plotting options apply only when ' ...
+                                              'the "Window based" method is selected.'];
 sProcess.options.noteApplicability.Type = 'label';
 sProcess.options.noteApplicability.Value = {};
 
@@ -141,40 +148,44 @@ function Comment = FormatComment(sProcess) %#ok<DEFNU>
 Comment = sProcess.Comment;
 end
 
+
 %% ===== RUN =====
 function OutputFiles = Run(sProcess, sInput)
 
+% Stop any Brainstorm progress bar that may be running
 bst_progress('stop');
 
+% Extract user-defined options
 plotResults = sProcess.options.plotResults.Value;
-saveMat = sProcess.options.saveMat.Value;
+saveMat     = sProcess.options.saveMat.Value;
+savedir     = sProcess.options.savedir.Value;
 
 OutputFiles = {};
+
+% ===== LOAD INPUT DATA =====
 sResultP = in_bst_results(sInput.FileName, 1);
-
-% Obtain saving directory
-savedir = sProcess.options.savedir.Value;
-
-% Prompt and select time interval
-Tinterval = selectTimeInterval(sProcess.options.window.Value{1});
-
-% Conditional activation of specific time interval input
-if Tinterval == 1 || Tinterval == 3
-    timerange = sProcess.options.poststim.Value{1};
-else
-    timerange = 1; % Follow the existing procedure for other options
+if isempty(sResultP)
+    error('Could not load the selected results file.');
 end
 
-% Select effect type (Positive, Negative, Absolute values)
+% ===== TIME INTERVAL SETTINGS =====
+Tinterval = selectTimeInterval(sProcess.options.window.Value{1});
+
+% Determine the time range based on user selection
+if Tinterval == 1 || Tinterval == 3
+    timerange = sProcess.options.poststim_custom.Value{1};
+else
+    timerange = 1; % For averaged or other intervals, default/legacy behavior
+end
+
+% ===== EFFECT TYPE =====
 effect = selectEffectType(sProcess.options.effect.Value{1});
 
-% Define ROI-related parameters
+% ===== THRESHOLD SETTINGS =====
 Ratio4Threshold = sProcess.options.ratio4threshold.Value{1}/100;
-
-% Define threshold type
 Threshtype = selectThresholdType(sProcess.options.threshtype.Value{1});
 
-% Process ImageGridAmp based on selected effect
+% ===== PROCESS IMAGE DATA =====
 ImageGridAmp = processImageGridAmp(sResultP.ImageGridAmp, effect);
 
 % Determine max values for various time windows
@@ -182,89 +193,100 @@ ImageGridAmp = processImageGridAmp(sResultP.ImageGridAmp, effect);
 
 [sScout, ~] = convertHCPScout(sResultP);
 
-% Example modification in the part that processes ImageGridAmp
+% If "Averaged Time Interval" is selected (value=2), and enough data points are available
 if sProcess.options.window.Value{1} == 2 && length(sResultP.Time) > 10
     timerange = sProcess.options.poststim.Value{1};
-    % Compute the average across the selected time range
     [~, t1] = min(abs(sResultP.Time - timerange(1)));
     [~, t2] = min(abs(sResultP.Time - timerange(2)));
     ImageGridAmp = mean(ImageGridAmp(:, t1:t2), 2);
-else
-    % Existing logic for specific time intervals or other options
 end
 
+% If "Window based" method is selected (value=3), set up time windows
 if sProcess.options.window.Value{1} == 3
-    % Extract windowing parameters
     winLength = sProcess.options.twindow.Value{1};
-    overlap = sProcess.options.toverlap.Value{1};
+    overlap   = sProcess.options.toverlap.Value{1};
     
     cfg = [];
-    cfg.strt = timerange(1);
-    cfg.spt = timerange(2);
+    cfg.strt    = timerange(1);
+    cfg.spt     = timerange(2);
     cfg.overlap = overlap/1000;
     cfg.linterval = winLength/1000;
-    wi  = generateTimeWindows(cfg);
+    wi = generateTimeWindows(cfg);
 else
     wi = [];
 end
-disp('Selected intervals:')
-disp(['Interval [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec, L:', num2str(winLength), ' ms, overlap:', num2str(overlap), '%:'])
-disp(wi)
 
-% Define ROIs
+disp('Selected intervals:')
+if sProcess.options.window.Value{1} == 3
+    disp(['Interval: [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec, Window length: ', ...
+          num2str(winLength), ' ms, Overlap: ', num2str(overlap), '%']);
+    disp(wi);
+else
+    disp(['Interval: [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec']);
+end
+
+% ===== DEFINE ROIs =====
 [RoiLabels, RoiIndices] = defineROIs_HCP(sScout);
 
-% Compute LI
+% ===== CONFIGURE LI COMPUTATION =====
 cfg_LI = [];
-cfg_LI.Tinterval = Tinterval;
-cfg_LI.ImageGridAmp = ImageGridAmp;
-cfg_LI.timerange = timerange;
-cfg_LI.RoiLabels = RoiLabels;
-cfg_LI.RoiIndices = RoiIndices;
-cfg_LI.sScout = sScout;
-cfg_LI.AllMax = AllMax;
-cfg_LI.GlobalMax = GlobalMax;
-cfg_LI.Threshtype = Threshtype;
+cfg_LI.Tinterval       = Tinterval;
+cfg_LI.ImageGridAmp    = ImageGridAmp;
+cfg_LI.timerange       = timerange;
+cfg_LI.RoiLabels       = RoiLabels;
+cfg_LI.RoiIndices      = RoiIndices;
+cfg_LI.sScout          = sScout;
+cfg_LI.AllMax          = AllMax;
+cfg_LI.GlobalMax       = GlobalMax;
+cfg_LI.Threshtype      = Threshtype;
 cfg_LI.Ratio4Threshold = Ratio4Threshold;
-cfg_LI.t1 = t1;
-cfg_LI.t2 = t2;
-cfg_LI.plotResults = plotResults;
-cfg_LI.saveMat = saveMat;
-cfg_LI.savedir = savedir;
-cfg_LI.Comment = sResultP.Comment;
-cfg_LI.windows = wi; % window-based analysis
-cfg_LI.sname =  sProcess.options.sname.Value;
-cfg_LI.Time = sResultP.Time;
+cfg_LI.t1              = t1;
+cfg_LI.t2              = t2;
+cfg_LI.plotResults     = plotResults;
+cfg_LI.saveMat         = saveMat;
+cfg_LI.savedir         = savedir;
+cfg_LI.Comment         = sResultP.Comment;
+cfg_LI.windows         = wi; % Only meaningful if window-based
+cfg_LI.sname           = sProcess.options.sname.Value;
+cfg_LI.Time            = sResultP.Time;
 
-disp('Source values ...')
+% ===== COMPUTE LI BASED ON SELECTED METHODS =====
+% At least one method should be selected; if not, warn the user
+methodsSelected = [sProcess.options.methodSource.Value, sProcess.options.methodCounting.Value, sProcess.options.methodBootstrap.Value];
+if ~any(methodsSelected)
+    warning('No LI computation method selected. Please choose at least one method (Source, Counting, or Bootstrapping).');
+    return;
+end
+
 if sProcess.options.methodSource.Value == 1
+    disp('Computing LI using Source Magnitude Method...')
     cfg_LI.method = 1;
-    computeLI(cfg_LI); % Source-based method
-    pause(0.2)
+    computeLI(cfg_LI); 
+    pause(0.2);
 end
 
-disp('Counting ...')
-% Handle the selected LI computation method
-if sProcess.options.methodCounting.Value ==1
+if sProcess.options.methodCounting.Value == 1
+    disp('Computing LI using Counting Method...')
     cfg_LI.method = 2;
-    computeLI(cfg_LI);  % Counting-based method
-    pause(0.2)
+    computeLI(cfg_LI); 
+    pause(0.2);
 end
 
-disp('Bootstrapping ...')
 if sProcess.options.methodBootstrap.Value == 1
+    disp('Computing LI with Bootstrapping...')
     cfg_LI.method = 3;
-    cfg_LI.divs =  sProcess.options.divs.Value{1};  % Adjust as needed
-    cfg_LI.n_resampling =  sProcess.options.n_resampling.Value{1};  % Adjust as needed
-    cfg_LI.RESAMPLE_RATIO = sProcess.options.RESAMPLE_RATIO.Value{1} / 100;  % Adjust as needed
-    computeLI(cfg_LI);  % Counting-based method
-    pause(0.2)
+    cfg_LI.divs           = sProcess.options.divs.Value{1};
+    cfg_LI.n_resampling   = sProcess.options.n_resampling.Value{1};
+    cfg_LI.RESAMPLE_RATIO = sProcess.options.RESAMPLE_RATIO.Value{1} / 100;
+    computeLI(cfg_LI);  
+    pause(0.2);
 end
 
-disp(['LI assessed for: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec']);
-disp('of HCP-MMP1 atlas ROIs.')
-disp('To edit the LI script, first ensure Brainstorm is running. Then, open process_computeLI.m in Matlab.');
+disp(['LI assessed for interval: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec using the HCP-MMP1 atlas.']);
+disp('If needed, edit process_computeLI.m after ensuring Brainstorm is running.')
 disp('LI analysis is completed!')
+
+OutputFiles = {}; % Adjust if your code generates output files
 
 end
 
@@ -879,31 +901,71 @@ end
 end
 
 function plot_LI(cfg_LI)
+% PLOT_LI Visualizes the Lateralization Index (LI) across multiple time windows.
+% This function is intended for window-based analyses, where LI values are computed
+% for each defined time window. It plots LI values per window for all ROIs, allowing
+% users to observe temporal dynamics in laterality.
 
-figure;
-plot(cfg_LI.final_LI,'LineWidth',1.5);
+% Ensure that windows and final_LI are available
+if ~isfield(cfg_LI, 'windows') || isempty(cfg_LI.windows)
+    warning('No windows defined in cfg_LI. This plot is primarily intended for the window-based approach.');
+    return;
+end
+
+if ~isfield(cfg_LI, 'final_LI') || isempty(cfg_LI.final_LI)
+    warning('No LI data available to plot (cfg_LI.final_LI is empty).');
+    return;
+end
+
+% Extract window start times and compute mean of start times for labeling
+val = mean(cfg_LI.windows(:,1),2);
+val_rounded = round(val,2);
+
+% Check if final_LI and windows have compatible dimensions
+[W, R] = size(cfg_LI.final_LI);
+if W ~= size(cfg_LI.windows,1)
+    warning('Number of windows in cfg_LI.final_LI does not match cfg_LI.windows. Cannot plot LI per window.');
+    return;
+end
+
+figure('Color', 'w'); % White background figure
+plot(cfg_LI.final_LI, 'LineWidth', 1.5);
 ylabel('Lateralization Index (LI)');
-val = round(mean(cfg_LI.windows(:,1),2),2);
-set(gca, 'Xtick', 1:2:length(cfg_LI.windows), 'XtickLabel', val(1:2:end));
+
+% Set x-axis to show window start times. Label every other window for readability.
+set(gca, 'XTick', 1:2:W, 'XTickLabel', val_rounded(1:2:end));
 set(gca, 'FontSize', 8, 'XTickLabelRotation', 90);
+
+% Adjust figure and axes appearance
 set(gcf, 'Position', [400, 400, 700, 300]);
-xlim([1 length(val)])
+xlim([1 length(val_rounded)])
 box off
+set(gca, 'color', 'none'); % Transparent background
 
 xlabel('Mean Temporal Windows (sec)');
+
+% Set the title based on the method used
 switch cfg_LI.method
     case 1
-        title('Source Magnitude');
+        title('LI by Source Magnitude Method');
     case 2
-        title('Vertex Count');
+        title('LI by Vertex Counting Method');
     case 3
-        title('Bootstrap');
+        title('LI by Bootstrapping Method');
+    otherwise
+        title('Lateralization Index');
 end
 
-set(gca, 'color', 'none'); % Transparent background
-legend(cfg_LI.RoiLabels', 'Location', 'best');
+% If ROI labels are available, add a legend
+if isfield(cfg_LI, 'RoiLabels') && ~isempty(cfg_LI.RoiLabels)
+    legend(cfg_LI.RoiLabels', 'Location', 'best');
+else
+    legend('off');
+    disp('No ROI labels found to display in legend.');
+end
 
 end
+
 
 function final_table = report_tLI(cfg_LI)
 % REPORT_TLI evaluates each ROI separately, finding the max LI value, the corresponding
@@ -1028,107 +1090,105 @@ save(fullfile(folderPath,[sname, '_',mtd_label, '.mat']), '-struct', 'sLI');
 end
 
 function export_LI(cfg_LI)
+% EXPORT_LI saves the computed LI results to a file, adapting format based on the chosen method.
+% For non-bootstrapping methods (1 or 2), it saves a simple table with LI and L/R counts.
+% For the bootstrapping method (3), it includes CI and CI width as well.
+%
+% The function also handles directory creation and clearly reports where the file is saved.
 
-% Save results to disk
-% Create folder path if it doesn't exist
+% Ensure savedir is defined
 folderPath = fullfile(cfg_LI.savedir);
+if isempty(folderPath)
+    warning('No saving directory specified (cfg_LI.savedir is empty). Results will not be saved.');
+    return;
+end
+
+% Create the folder path if it does not exist
 if ~exist(folderPath, 'dir')
     mkdir(folderPath);
-    disp('Folder created successfully.');
+    disp(['Folder created successfully at: ', folderPath]);
 else
-    disp('Folder already exists.');
+    disp(['Using existing directory: ', folderPath]);
 end
 
-sname = cfg_LI.sname;
-
+% Determine method label
 switch cfg_LI.method
     case 1
-        mtd_label = 'S';
+        mtd_label = 'S'; % Source Magnitude
     case 2
-        mtd_label = 'C';
+        mtd_label = 'C'; % Counting
     case 3
-        mtd_label = 'B';
+        mtd_label = 'B'; % Bootstrapping
+    otherwise
+        warning('Unknown LI method code. Cannot determine filename label.');
+        mtd_label = 'X';
 end
 
-% Define the filename based on the Tinterval
+% Construct filename based on Tinterval and method
 if cfg_LI.Tinterval == 2
-    switch cfg_LI.method
-        case {1,2}
-            filename = fullfile(folderPath, ['/LI_', mtd_label, '_', sname, '_Th', num2str(cfg_LI.Ratio4Threshold), '.xls']);
-        case 3
-            filename = fullfile(folderPath, ['/LI_', mtd_label, '_', sname, '.xls']);
+    % Averaged Time Interval case
+    if cfg_LI.method == 3
+        % Bootstrapping method for averaged interval
+        filename = fullfile(folderPath, ['/LI_', mtd_label, '_', cfg_LI.sname, '.xls']);
+    else
+        % Source or Counting method for averaged interval
+        filename = fullfile(folderPath, ['/LI_', mtd_label, '_', cfg_LI.sname, '_Th', num2str(cfg_LI.Ratio4Threshold), '.xls']);
     end
 else
-    switch cfg_LI.method
-        case {1,2}
-            filename = fullfile(folderPath, ['/LI', mtd_label, '_', sname, ' ', 'T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '_Thre ', num2str(cfg_LI.Ratio4Threshold), '.xls']);
-        case 3
-            filename = fullfile(folderPath, ['/LI', mtd_label, '_', sname, ' ', 'T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '.xls']);
+    % Specific Time Interval (1) or Window based (3)
+    if cfg_LI.method == 3
+        % Bootstrapping method for window-based or specific interval
+        filename = fullfile(folderPath, ['/LI', mtd_label, '_', cfg_LI.sname, ' T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '.xls']);
+    else
+        % Source or Counting method for specific or window intervals
+        filename = fullfile(folderPath, ['/LI', mtd_label, '_', cfg_LI.sname, ' T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '_Thre ', num2str(cfg_LI.Ratio4Threshold), '.xls']);
     end
 end
 
-%%
+% Open file for writing
 tempfile = fopen(filename, 'w');
+if tempfile == -1
+    warning(['Could not open file for writing: ', filename]);
+    return;
+end
 
+% Print results depending on the method
 switch cfg_LI.method
-    
-    case {1,2}
-        
-        % Print headers
+    case {1, 2}
+        % Simple header for Source or Counting method
         fprintf(tempfile, 'ROI\tLI\tLeft_count\tRight_count\n');
         
-        % Ensure L_count and R_count are column vectors
         L_count1 = cfg_LI.L_count(:);
         R_count1 = cfg_LI.R_count(:);
         
-        % Printing the labels, LI values, L_count, and R_count on separate lines
         for i = 1:length(cfg_LI.LI_label_out)
-            fprintf(tempfile, '%s\t', cfg_LI.LI_label_out{i});
-            fprintf(tempfile, '%f\t', cfg_LI.Summ_LI(i));
-            fprintf(tempfile, '%d\t', L_count1(i));
-            fprintf(tempfile, '%d\n', R_count1(i));
+            fprintf(tempfile, '%s\t%f\t%d\t%d\n', ...
+                cfg_LI.LI_label_out{i}, cfg_LI.Summ_LI(i), L_count1(i), R_count1(i));
         end
         
-        % Printing the threshold
+        % Print threshold used
         fprintf(tempfile, 'Threshold\t%f\n', cfg_LI.threshold);
         
     case 3
-        
-        % Pre-compute a formatted CI string and CI width for each ROI
-        LI_label_out = cfg_LI.LI_label_out;
-        
-        % Updated header: now includes CI and CI width
+        % Bootstrapping method: Include CI and CI width
+        % Print headers including CI and vertex counts
         fprintf(tempfile, 'ROI\tLI\tCI\tCI_Width\tL_Vertices\tR_Vertices\n');
         
-        TotROI = length(LI_label_out);
-        for i = 1:TotROI
-            fprintf(tempfile, '%s\t%f\t%s\t%f\t%d\t%d\n', ...
-                LI_label_out{i}, cfg_LI.Summ_LI(i), cfg_LI.CI_strings{i}, cfg_LI.CI_widths(i), cfg_LI.L_count(i), cfg_LI.R_count(i));
-        end
-        
-        % Print headers
-        fprintf(tempfile, 'ROI\tLI\tLeft_count\tRight_count\n');
-        
-        % Ensure L_count and R_count are column vectors
         L_count1 = cfg_LI.L_count(:);
         R_count1 = cfg_LI.R_count(:);
-        
-        % Printing the labels, LI values, L_count, and R_count on separate lines
         for i = 1:length(cfg_LI.LI_label_out)
-            fprintf(tempfile, '%s\t', cfg_LI.LI_label_out{i});
-            fprintf(tempfile, '%f\t', cfg_LI.Summ_LI(i));
-            fprintf(tempfile, '%d\t', L_count1(i));
-            fprintf(tempfile, '%d\n', R_count1(i));
+            fprintf(tempfile, '%s\t%f\t%s\t%f\t%d\t%d\n', ...
+                cfg_LI.LI_label_out{i}, cfg_LI.Summ_LI(i), cfg_LI.CI_strings{i}, cfg_LI.CI_widths(i), L_count1(i), R_count1(i));
         end
 end
 
-% Adding an extra newline for separation
+% Add a newline for separation
 fprintf(tempfile, '\n');
 fclose(tempfile);
-%
-% Display the path to the saved file
-disp('Results saved to: ');
-disp(filename)
+
+% Display where the results are saved
+disp('Results saved to:');
+disp(filename);
 
 end
 
@@ -1149,15 +1209,5 @@ for ii = 1:length(cfg_LI.RoiIndices)
     end
     globmax_rois(ii) = max(mdwin(:));
 end
-end
-
-function saveMatOption = createSaveMatOption()
-% Define the option to save results in .mat format
-saveMatOption = struct('Comment', 'Save results as .mat', 'Type', 'checkbox', 'Value', 0);
-end
-
-function plotOption = createPlotOption()
-% Define the option to enable/disable plotting
-plotOption = struct('Comment', 'Enable Plotting', 'Type', 'checkbox', 'Value', 1);
 end
 
