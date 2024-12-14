@@ -6,6 +6,8 @@ This repository hosts a Brainstorm-compatible pipeline for analyzing brain later
 
 *Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for time intervals, LI methods, thresholding, and output preferences.*
 
+![Tool Interface](figures/figure1_tool.png)
+
 ## LI methods
 
 The pipeline provides several methods for computing a Lateralization Index (LI):
