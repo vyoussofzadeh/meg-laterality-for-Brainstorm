@@ -4,7 +4,7 @@ This repository hosts a Brainstorm-compatible pipeline for analyzing brain later
 
 ![Tool Interface](figures/fig1_tool.png)
 
-*Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for time intervals, LI methods, thresholding, and output preferences.*
+*Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for surface atlas, time intervals, LI methods, thresholding, and output preferences.*
 
 ## LI methods
 
