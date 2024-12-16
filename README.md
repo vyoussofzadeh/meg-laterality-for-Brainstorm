@@ -79,9 +79,7 @@ Users can adjust the threshold ratio to control the sensitivity of region inclus
 ### Step-by-Step in Brainstorm
 
 1. **Open Brainstorm** and load your MEG protocol containing source-level results.
-
-2. **Select a Source File**: in BS, drag and drop the source file to the 'Process1' window
-
+2. **Select a Results File**: Choose the `...results...mat` file you wish to analyze.
 3. **Run the Custom Process**:
     - In the Brainstorm **Process** tab, select **Compute LI (HCP or DK atlas, surface-based)**.
     - Adjust the process parameters as needed:
@@ -92,16 +90,15 @@ Users can adjust the threshold ratio to control the sensitivity of region inclus
       - **Thresholding**: Choose the threshold type and ratio.
       - **Output**: Specify the output directory and filename.
     - Click **Run** to execute the pipeline.
-
 4. **Results**:
     - The pipeline computes LI for all defined ROIs and time intervals.
     - It generates output files (e.g., `.xls`) containing LI values, vertex counts, and (if bootstrapping is used) 95% confidence intervals.
     - Summaries are displayed, and if window-based analysis is used, LI evolution over time can be plotted.
-
 5. **Check Outputs**:
     - Review the MATLAB command window for logs.
     - Check the specified output directory for result files.
     - If bootstrapping was performed, examine the CI columns in the output files to assess the precision and stability of the LI estimates.
+
 ### Example Code Snippet
 If you prefer scripting, call the process directly in MATLAB:
 
