@@ -36,7 +36,7 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 2. **Load the HCP Atlas**: In the Brainstorm Scout panel, load the HCP MMP1.0 atlas.
 3. **Configure Pipeline**: The pipeline functions (`defineROIs_HCP`, `convertHCPScout`) are preconfigured to handle HCP-based ROIs.
 
-### Desikan-Killiany (DK) Atlas, for both individual/native or MNI/default space
+### Desikan-Killiany (DK) Atlas, for both individual/native or MNI/default spaces
 - **Description**: A widely used, lower-resolution cortical parcellation suitable for broader, more anatomically coarse analyses.
 - **Resolution**: Coarser grained, beneficial for initial screenings or simpler ROI definitions.
 - **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).
