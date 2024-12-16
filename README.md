@@ -6,22 +6,25 @@ This repository hosts a Brainstorm-compatible pipeline for analyzing brain later
 
 *Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for surface atlas, time intervals, LI methods, thresholding, and output preferences.*
 
-## LI methods
+## Prerequisites
 
-The pipeline provides several methods for computing a Lateralization Index (LI):
+- **MATLAB**: Tested on MATLAB version 2024.
+- **Brainstorm**: Download and install from [the official website](https://neuroimage.usc.edu/brainstorm). Ensure Brainstorm is on your MATLAB path.
+- **MEG Data**: Source-level MEG data processed in Brainstorm (containing `ImageGridAmp`).
+- **HCP Atlas**: Ensure your subject’s anatomy is co-registered with the HCP MMP1.0 atlas or a compatible symmetrical MNI atlas. A compatible version `scout_mmp_in_mni_symmetrical.mat` is included in this repository. Simply import it into your Brainstorm using the atlas panel. Make sure to import it to the source file that is projected to the default MNI space (see below).
 
-- **Source Magnitude Method**: Compares source amplitude across hemispheres.
-- **Counting Method**: Counts the number of suprathreshold vertices in left vs. right hemispheres.
-- **Bootstrapping Method**: Uses resampling to obtain LI confidence intervals (95% CI), providing estimates of uncertainty around the LI measurement.
+## Installation
 
-## Time intervals
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-username/meg-laterality-for-Brainstorm.git
 
-You can also select different time intervals for analysis:
-- **Specific Time Interval**: Analyze a predefined time range.
-- **Averaged Time Interval**: Compute average activity across a chosen time segment.
-- **Window-based Analysis**: Segment data into overlapping or non-overlapping windows, computing LI for each segment to capture temporal evolution of lateralization.
+2. **Add to MATLAB Path:**:
+   ```bash
+   addpath('path_to_meg-laterality-for-Brainstorm');
+   savepath;
 
-## Atlas (ROIs)
+## Data Preparation & Atlas Selection
 
 This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atlas** and the **Desikan-Killiany (DK) atlas** for defining Regions of Interest (ROIs). Each atlas provides a distinct level of anatomical detail, allowing you to choose the granularity that best fits your research questions.
 
@@ -48,6 +51,21 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 2. **Default Availability**: DK parcellation is typically included by default after FreeSurfer segmentation. Simply open the Scout panel in Brainstorm to access DK ROIs.
 3. **Configure Pipeline**: The pipeline functions (`defineROIs_DK`, `convertDesikanKillianyScout`) can be applied directly to these default DK scouts.
 
+## Lateralization Index Methods
+
+The pipeline provides several methods for computing a Lateralization Index (LI):
+
+- **Source Magnitude Method**: Compares source amplitude across hemispheres.
+- **Counting Method**: Counts the number of suprathreshold vertices in left vs. right hemispheres.
+- **Bootstrapping Method**: Uses resampling to obtain LI confidence intervals (95% CI), providing estimates of uncertainty around the LI measurement.
+
+## Time Interval Analysis
+
+You can also select different time intervals for analysis:
+- **Specific Time Interval**: Analyze a predefined time range.
+- **Averaged Time Interval**: Compute average activity across a chosen time segment.
+- **Window-based Analysis**: Segment data into overlapping or non-overlapping windows, computing LI for each segment to capture temporal evolution of lateralization.
+
 ## Thresholding Mechanism
 
 Thresholding plays a crucial role in determining which brain regions are active and contributes to the calculation of LI. The pipeline provides three threshold types:
@@ -58,25 +76,7 @@ Thresholding plays a crucial role in determining which brain regions are active 
 
 Users can adjust the threshold ratio to control the sensitivity of region inclusion in the LI calculation. This ratio is applied to the determined maximum value according to the selected threshold type.
 
-## Prerequisites
-
-- **MATLAB**: Tested on MATLAB version 2024.
-- **Brainstorm**: Download and install from [the official website](https://neuroimage.usc.edu/brainstorm). Ensure Brainstorm is on your MATLAB path.
-- **MEG Data**: Source-level MEG data processed in Brainstorm (containing `ImageGridAmp`).
-- **HCP Atlas**: Ensure your subject’s anatomy is co-registered with the HCP MMP1.0 atlas or a compatible symmetrical MNI atlas. A compatible version `scout_mmp_in_mni_symmetrical.mat` is included in this repository. Simply import it into your Brainstorm using the atlas panel. Make sure to import it to the source file that is projected to the default MNI space (see below).
- 
-## Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/your-username/meg-laterality-for-Brainstorm.git
-
-2. **Add to MATLAB Path:**:
-   ```bash
-   addpath('path_to_meg-laterality-for-Brainstorm');
-   savepath;
-   
-### Step-by-Step in Brainstorm
+### Running MELAB in Brainstorm
 
 1. **Open Brainstorm** and load your MEG protocol containing source-level results.
 2. **Select a Results File**: Choose the `...results...mat` file you wish to analyze.
@@ -144,7 +144,7 @@ sFiles = bst_process('CallProcess', 'process_computeLI', sFiles, [], ...
 - **CI_95 (Bootstrapping)**: The 95% confidence interval provides an estimate of the uncertainty in LI. A narrower CI indicates more stable results.
 - **Window-based Analysis**: By examining LI across multiple time windows, you can understand how hemispheric dominance changes over time or in response to different tasks or stimuli.
 
-### Support and Contributions
+### Support & Contributions
 If you have questions, encounter issues, or would like to contribute improvements:
 - **Issues**: Open an issue on this repository for troubleshooting or feature requests.
 - **Pull Requests**: Contributions are welcome via pull requests. Please ensure your code is well-documented and tested.
