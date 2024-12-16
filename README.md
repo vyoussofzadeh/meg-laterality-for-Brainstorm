@@ -39,7 +39,7 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 ### Desikan-Killiany (DK) Atlas, for both individual/native or MNI/default spaces
 - **Description**: A widely used, lower-resolution cortical parcellation suitable for broader, more anatomically coarse analyses.
 - **Resolution**: Coarser grained, beneficial for initial screenings or simpler ROI definitions.
-- **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).
+- **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka (See [Tanaka et al. (2013), *AJNR Am J Neuroradiol.*](https://pubmed.ncbi.nlm.nih.gov/22878013/)), Temp, Whole).
 - **No Extra Atlas Import Required**: If your anatomy is already segmented using FreeSurfer, the DK atlas labels are typically integrated into the default parcellation available in Brainstorm. This means you do not need to manually import a separate DK atlas—just select the DK scouts within Brainstorm.
 - **Reference**: See [Desikan et al. (2006), *NeuroImage*](https://pubmed.ncbi.nlm.nih.gov/16530430/) for more details.
 
