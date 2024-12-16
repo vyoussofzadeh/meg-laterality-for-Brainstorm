@@ -41,6 +41,7 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 - **Resolution**: Coarser grained, beneficial for initial screenings or simpler ROI definitions.
 - **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).
 - **No Extra Atlas Import Required**: If your anatomy is already segmented using FreeSurfer, the DK atlas labels are typically integrated into the default parcellation available in Brainstorm. This means you do not need to manually import a separate DK atlas—just select the DK scouts within Brainstorm.
+- **Reference**: See [Desikan et al. (2006), *NeuroImage*](https://pubmed.ncbi.nlm.nih.gov/16530430/) for more details.
 
 **Workflow:**
 1. **Co-Registration**: If using individual/native space, ensure that data is appropriately registered. For MNI space, follow the same steps as for HCP.
