@@ -1,10 +1,10 @@
-# MEG Laterality for Brainstorm
+# MEG Laterality Tool for Brainstorm
 
-This repository hosts a Brainstorm-compatible pipeline for analyzing brain laterality using magnetoencephalography (MEG) task responses. The pipeline leverages [Brainstorm](https://neuroimage.usc.edu/brainstorm/), a popular MATLAB toolbox, to facilitate robust analysis of hemispheric differences and lateralization indices (LI) in brain activity.
+This repository hosts a Brainstorm-compatible pipeline for analyzing brain laterality using magnetoencephalography (MEG) task responses. The pipeline leverages [Brainstorm](https://neuroimage.usc.edu/brainstorm/) Matlab toolbox to facilitate robust analysis of hemispheric differences and lateralization indices (LI) in brain activity.
 
 ![Tool Interface](figures/fig1_tool.png)
 
-*Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for time intervals, LI methods, thresholding, and output preferences.*
+*Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for surface atlas, time intervals, LI methods, thresholding, and output preferences.*
 
 ## LI methods
 
@@ -25,22 +25,23 @@ You can also select different time intervals for analysis:
 
 This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atlas** and the **Desikan-Killiany (DK) atlas** for defining Regions of Interest (ROIs). Each atlas provides a distinct level of anatomical detail, allowing you to choose the granularity that best fits your research questions.
 
-### HCP Atlas (MNI space only)
+### HCP Atlas, for MNI space only
 - **Description**: Utilizes the HCP MMP1.0 multimodal atlas aligned to a symmetrical MNI template.
 - **Resolution**: High-resolution cortical parcellation, enabling a fine-grained assessment of hemispheric dominance.
 - **ROIs**: Bilateral ROIs are grouped into functional categories (e.g., Angular, Frontal, Temporal, Lateral).
 - **Reference**: See [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933) for more details.
 
 **Workflow:**
-1. **Co-Registration**: Ensure your subject’s anatomy is projected onto the default Brainstorm anatomy in MNI space. To ensure accurate lateralization analysis, it's advisable to first project individual source maps into the default anatomy (e.g., right-click on the source map and select `Default_anatomy > Cortex_15002V`). Then, import the atlas by opening the source file, navigating to the Scout panel, going to the atlas tab, and loading the atlas. Finally, run the LI pipeline on the projected map. This approach helps maintain consistency in spatial alignment across subject anatomies and the atlas.
+1. **Co-Registration**: Ensure your subject’s anatomy is projected onto the default Brainstorm anatomy in MNI space. To ensure accurate lateralization analysis, it's advisable to first project individual source maps into the default anatomy (e.g., right-click on the source map and select `Default_anatomy > Cortex_15002V`). Then, import the atlas by opening the source file, navigating to the Scout panel, going to the atlas tab, and loading the atlas.
 2. **Load the HCP Atlas**: In the Brainstorm Scout panel, load the HCP MMP1.0 atlas.
 3. **Configure Pipeline**: The pipeline functions (`defineROIs_HCP`, `convertHCPScout`) are preconfigured to handle HCP-based ROIs.
 
-### Desikan-Killiany (DK) Atlas (Individual/Native or MNI/Default space)
+### Desikan-Killiany (DK) Atlas, for both individual/native or MNI/default spaces
 - **Description**: A widely used, lower-resolution cortical parcellation suitable for broader, more anatomically coarse analyses.
 - **Resolution**: Coarser grained, beneficial for initial screenings or simpler ROI definitions.
-- **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).
+- **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg (Angular Gyrus and Supramarginal G.), Front, LatFront, LatTemp (Lateral Temporal), PeriSyl (Peri-Sylvian), Tanaka ([Tanaka et al. (2013), *AJNR Am J Neuroradiol.*](https://pubmed.ncbi.nlm.nih.gov/22878013/), Temp (Temporal), Whole). See `defineROIs_DK` for the details.
 - **No Extra Atlas Import Required**: If your anatomy is already segmented using FreeSurfer, the DK atlas labels are typically integrated into the default parcellation available in Brainstorm. This means you do not need to manually import a separate DK atlas—just select the DK scouts within Brainstorm.
+- **Reference**: See [Desikan et al. (2006), *NeuroImage*](https://pubmed.ncbi.nlm.nih.gov/16530430/) for more details.
 
 **Workflow:**
 1. **Co-Registration**: If using individual/native space, ensure that data is appropriately registered. For MNI space, follow the same steps as for HCP.
@@ -78,9 +79,7 @@ Users can adjust the threshold ratio to control the sensitivity of region inclus
 ### Step-by-Step in Brainstorm
 
 1. **Open Brainstorm** and load your MEG protocol containing source-level results.
-
-2. **Select a Source File**: in BS, drag and drop the source file to the 'Process1' window
-
+2. **Select a Results File**: Choose the `...results...mat` file you wish to analyze.
 3. **Run the Custom Process**:
     - In the Brainstorm **Process** tab, select **Compute LI (HCP or DK atlas, surface-based)**.
     - Adjust the process parameters as needed:
@@ -91,16 +90,15 @@ Users can adjust the threshold ratio to control the sensitivity of region inclus
       - **Thresholding**: Choose the threshold type and ratio.
       - **Output**: Specify the output directory and filename.
     - Click **Run** to execute the pipeline.
-
 4. **Results**:
     - The pipeline computes LI for all defined ROIs and time intervals.
     - It generates output files (e.g., `.xls`) containing LI values, vertex counts, and (if bootstrapping is used) 95% confidence intervals.
     - Summaries are displayed, and if window-based analysis is used, LI evolution over time can be plotted.
-
 5. **Check Outputs**:
     - Review the MATLAB command window for logs.
     - Check the specified output directory for result files.
     - If bootstrapping was performed, examine the CI columns in the output files to assess the precision and stability of the LI estimates.
+
 ### Example Code Snippet
 If you prefer scripting, call the process directly in MATLAB:
 
