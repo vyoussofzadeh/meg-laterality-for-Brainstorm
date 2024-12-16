@@ -32,12 +32,9 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 - **Reference**: See [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933) for more details.
 
 **Workflow:**
-1. **Co-Registration**: Ensure your subject’s anatomy is projected onto the default Brainstorm anatomy in MNI space.
-
-To ensure accurate lateralization analysis, it's advisable to first project individual source maps into the default anatomy (e.g., right-click on the source map and select `Default_anatomy > Cortex_15002V`). Then, import the atlas by opening the source file, navigating to the Scout panel, going to the atlas tab, and loading the atlas. Finally, run the LI pipeline on the projected map. This approach helps maintain consistency in spatial alignment across subject anatomies and the atlas.
-
-3. **Load the HCP Atlas**: In the Brainstorm Scout panel, load the HCP MMP1.0 atlas.
-4. **Configure Pipeline**: The pipeline functions (`defineROIs_HCP`, `convertHCPScout`) are preconfigured to handle HCP-based ROIs.
+1. **Co-Registration**: Ensure your subject’s anatomy is projected onto the default Brainstorm anatomy in MNI space. To ensure accurate lateralization analysis, it's advisable to first project individual source maps into the default anatomy (e.g., right-click on the source map and select `Default_anatomy > Cortex_15002V`). Then, import the atlas by opening the source file, navigating to the Scout panel, going to the atlas tab, and loading the atlas. Finally, run the LI pipeline on the projected map. This approach helps maintain consistency in spatial alignment across subject anatomies and the atlas.
+2. **Load the HCP Atlas**: In the Brainstorm Scout panel, load the HCP MMP1.0 atlas.
+3. **Configure Pipeline**: The pipeline functions (`defineROIs_HCP`, `convertHCPScout`) are preconfigured to handle HCP-based ROIs.
 
 ### Desikan-Killiany (DK) Atlas (Individual/Native or MNI/Default space)
 - **Description**: A widely used, lower-resolution cortical parcellation suitable for broader, more anatomically coarse analyses.
