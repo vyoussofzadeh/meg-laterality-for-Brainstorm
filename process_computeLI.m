@@ -15,7 +15,7 @@ function varargout = process_computeLI(varargin )
 %   - HCP MMP1.0 atlas integrated into the subject anatomy
 %
 % Author: Vahab YoussofZadeh, 2024
-% Last Update: 12/13/24
+% Last Update: 12/16/24
 % Changes: Window-based LI analysis added.
 
 eval(macro_method);
@@ -358,7 +358,6 @@ disp('LI analysis is completed!')
 OutputFiles = {}; % Adjust this if you generate and want to return any results
 
 end
-
 
 % === HELPER FUNCTIONS ===
 function Tinterval = selectTimeInterval(Tinterval)
