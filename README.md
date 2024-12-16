@@ -1,4 +1,4 @@
-# MEG Laterality for Brainstorm
+# MEG Laterality Tool for Brainstorm
 
 This repository hosts a Brainstorm-compatible pipeline for analyzing brain laterality using magnetoencephalography (MEG) task responses. The pipeline leverages [Brainstorm](https://neuroimage.usc.edu/brainstorm/) Matlab toolbox to facilitate robust analysis of hemispheric differences and lateralization indices (LI) in brain activity.
 
