@@ -76,7 +76,7 @@ Thresholding plays a crucial role in determining which brain regions are active 
 
 Users can adjust the threshold ratio to control the sensitivity of region inclusion in the LI calculation. This ratio is applied to the determined maximum value according to the selected threshold type.
 
-### Running MELAB in Brainstorm
+## Running MELAB in Brainstorm
 
 1. **Open Brainstorm** and load your MEG protocol containing source-level results.
 2. **Select a Results File**: Choose the `...results...mat` file you wish to analyze.
