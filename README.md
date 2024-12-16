@@ -23,10 +23,18 @@ You can also select different time intervals for analysis:
 
 ## Atlas (ROIs)
 
-This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atlas** for defining Regions of Interest (ROIs). The HCP atlas is a high-resolution cortical parcellation, offering a fine-grained approach to assessing hemispheric dominance. However, other anatomical atlases can be integrated as needed.
+This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atlas** and the **Desikan-Killiany (DK) atlas** for defining Regions of Interest (ROIs). Both atlases are well-established, yet they differ in granularity and anatomical resolution. The choice of atlas depends on your research needs:
+
+- **HCP MMP1.0 Atlas** (High-Resolution, MNI Space):  
+  A multimodal, high-resolution cortical parcellation aligned to symmetrical MNI space. It offers a fine-grained approach to assessing hemispheric dominance, with numerous ROIs grouped into categories (e.g., Angular, Frontal, Temporal, Lateral).  
+  For more details, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
+
+- **Desikan-Killiany (DK) Atlas** (Lower-Resolution, Works in Individual or MNI Space):  
+  A widely used cortical parcellation providing fewer, more anatomically coarse ROIs. This is beneficial if you prefer more general regional definitions (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).  
+  Using the DK atlas can simplify ROI selection and may be more accessible for initial or broad-level analyses.
 
 ### HCP Atlas (MNI space only)
-- **Description**: Utilizes the HCP MMP1.0 multimodal atlas aligned to a symmetrical MNI template. For details, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
+- **Description**: Utilizes the HCP MMP1.0 multimodal atlas aligned to a symmetrical MNI template. 
 - **ROIs**: Bilateral ROIs are grouped into 4 functional categories (e.g., Angular, Frontal, Temporal, Lateral).
 
 **Steps:**
