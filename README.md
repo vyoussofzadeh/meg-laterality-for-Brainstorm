@@ -25,7 +25,7 @@ You can also select different time intervals for analysis:
 
 This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atlas** and the **Desikan-Killiany (DK) atlas** for defining Regions of Interest (ROIs). Each atlas provides a distinct level of anatomical detail, allowing you to choose the granularity that best fits your research questions.
 
-### HCP Atlas (MNI space only)
+### HCP Atlas, for MNI space only
 - **Description**: Utilizes the HCP MMP1.0 multimodal atlas aligned to a symmetrical MNI template.
 - **Resolution**: High-resolution cortical parcellation, enabling a fine-grained assessment of hemispheric dominance.
 - **ROIs**: Bilateral ROIs are grouped into functional categories (e.g., Angular, Frontal, Temporal, Lateral).
@@ -36,7 +36,7 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 2. **Load the HCP Atlas**: In the Brainstorm Scout panel, load the HCP MMP1.0 atlas.
 3. **Configure Pipeline**: The pipeline functions (`defineROIs_HCP`, `convertHCPScout`) are preconfigured to handle HCP-based ROIs.
 
-### Desikan-Killiany (DK) Atlas (Individual/Native or MNI/Default space)
+### Desikan-Killiany (DK) Atlas, for both individual/native or MNI/default space
 - **Description**: A widely used, lower-resolution cortical parcellation suitable for broader, more anatomically coarse analyses.
 - **Resolution**: Coarser grained, beneficial for initial screenings or simpler ROI definitions.
 - **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).
