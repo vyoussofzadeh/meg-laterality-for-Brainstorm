@@ -23,12 +23,28 @@ You can also select different time intervals for analysis:
 
 ## Atlas (ROIs)
 
-This pipeline uses the **Human Connectome Project (HCP) atlas** to define Regions of Interest (ROIs). The HCP MMP1.0 atlas is a high-resolution cortical parcellation providing detailed anatomical and functional organization of the cerebral cortex. Key points:
+This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atlas** for defining Regions of Interest (ROIs). The HCP atlas is a high-resolution cortical parcellation, offering a fine-grained approach to assessing hemispheric dominance. However, other anatomical atlases can be integrated as needed.
 
-- **HCP Atlas**: A multimodal atlas aligned to symmetrical MNI space, ensuring fair hemisphere-to-hemisphere comparisons.
-- **ROIs**: The code groups bilateral ROIs into categories (e.g., Angular, Frontal, Temporal, Lateral). Users can focus on specific ROI sets relevant to their research questions.
+### HCP Atlas (MNI space only)
+- **Description**: Utilizes the HCP MMP1.0 multimodal atlas aligned to a symmetrical MNI template. For details, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
+- **ROIs**: Bilateral ROIs are grouped into 4 functional categories (e.g., Angular, Frontal, Temporal, Lateral).
 
-By leveraging the HCP atlas, the pipeline offers a fine-grained approach to assessing hemispheric dominance across various cortical regions. For more information on the HCP atlas, see [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933).
+**Steps:**
+1. **Co-Registration**: Ensure your subject’s anatomy is co-registered or projected onto the default Brainstorm anatomy (in MNI space).
+2. **Loading the Atlas**: In Brainstorm’s Scout panel, load the HCP atlas. Once loaded, these ROIs can be directly used by the pipeline.
+3. **ROI Configuration**: The pipeline functions (`defineROIs_HCP`, `convertHCPScout`) can be configured to use HCP-based ROI groups.
+
+### Desikan-Killiany (DK) Atlas (Individual/Native or MNI/Default space)
+The **DK atlas** is a commonly used, lower-resolution cortical parcellation. It is ideal for analyses that require fewer, more anatomically coarse regions.
+
+- **ROIs**: The DK-based ROIs are grouped into categories like AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, and Whole.
+- **ROI Configuration**: The pipeline functions (`defineROIs_DK`, `convertDesikanKillianyScout`) can be configured to use DK-based ROI groups.
+
+### User-Defined or Other Atlases
+You can adapt the pipeline to other atlases by:
+
+- **Conversion Functions**: Creating new conversion functions (e.g., `convertMyAtlasScout`) to ensure all expected regions are present.
+- **ROI Grouping**: Defining ROI grouping functions (e.g., `defineROIs_MyAtlas`) to organize ROIs into meaningful hemispheric pairs or functional groups.
 
 ## Thresholding Mechanism
 
