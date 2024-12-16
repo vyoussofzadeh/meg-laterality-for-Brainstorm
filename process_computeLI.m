@@ -1,4 +1,4 @@
-function varargout = process_computeLI_HCP(varargin )
+function varargout = process_computeLI(varargin )
 
 % PROCESS_COMPUTELI_HCP: Compute the Lateralization Index (LI) using various methods (source magnitude, counting, bootstrapping)
 % on MEG source-level data projected onto the HCP atlas.
@@ -27,7 +27,7 @@ function sProcess = GetDescription() %#ok<DEFNU>
 % Provides several methods (source magnitude, counting, bootstrapping) and time interval strategies (specific, averaged, window-based).
 % Supports thresholding and optional saving of results as .mat and plotting.
 
-sProcess.Comment     = 'Compute LI (HCP atlas, surface-based)';
+sProcess.Comment     = 'Compute LI (HCP or DK atlas, surface-based)';
 sProcess.Category    = 'Custom';
 sProcess.SubGroup    = 'Sources';
 sProcess.Index       = 337;
@@ -36,6 +36,20 @@ sProcess.InputTypes  = {'results'};
 sProcess.OutputTypes = {'results'};
 sProcess.nInputs     = 1;
 sProcess.nMinFiles   = 1;
+
+%% Atlas Selection
+sProcess.options.atlas.Comment = '<B>Select Atlas:</B>';
+sProcess.options.atlas.Type = 'combobox';
+% Provide a descriptive list of atlases; the first value is the default.
+% Make sure the code checks sProcess.options.atlas.Value to determine which atlas to load later.
+sProcess.options.atlas.Value = {1, {'HCP (MMP1.0)', 'Desikan-Killiany (DK)'}};
+
+% Add notes on atlas usage
+sProcess.options.atlas_note.Comment = ['<I>Note:</I> Ensure your source data is aligned with the selected atlas. ' ...
+    'For HCP, use "scout_mmp_in_mni_symmetrical.mat". ' ...
+    'For DK, use the built-in Desikan-Killiany atlas.'];
+sProcess.options.atlas_note.Type = 'label';
+sProcess.options.atlas_note.Value = {};
 
 %% Time Window Parameters
 % Heading as a label
@@ -48,9 +62,9 @@ sProcess.options.timeParams.Comment = '';
 sProcess.options.timeParams.Type    = 'group';
 sProcess.options.timeParams.Value   = [];
 
-sProcess.options.twindow.Comment    = 'Window length (ms): For window-based methods, defines the length of each time window.';
-sProcess.options.twindow.Type       = 'value';
-sProcess.options.twindow.Value      = {300, 'ms', 100, 1000, 1};
+sProcess.options.twindow1.Comment    = 'Window length (ms): For window-based methods, defines the length of each time window.';
+sProcess.options.twindow1.Type       = 'value';
+sProcess.options.twindow1.Value      = {300, ' ', 0};
 
 sProcess.options.toverlap.Comment   = 'Overlap between windows (%): For window-based analysis, the percentage overlap between consecutive windows.';
 sProcess.options.toverlap.Type      = 'value';
@@ -96,7 +110,7 @@ sProcess.options.divs.Value   = {10, '', 1, 100, 1};
 
 sProcess.options.n_resampling.Comment = 'Number of resampling iterations: More iterations yield more stable CI at the cost of computation time.';
 sProcess.options.n_resampling.Type    = 'value';
-sProcess.options.n_resampling.Value   = {200, '', 1, 1000, 1};
+sProcess.options.n_resampling.Value   = {20, '', 1, 1000, 1};
 
 sProcess.options.RESAMPLE_RATIO.Comment = 'Resample ratio (%): Percentage of data to resample in each bootstrap iteration.';
 sProcess.options.RESAMPLE_RATIO.Type    = 'value';
@@ -137,17 +151,17 @@ sProcess.options.threshold.Comment = '';
 sProcess.options.threshold.Type    = 'group';
 sProcess.options.threshold.Value   = [];
 
-sProcess.options.threshtype.Comment = ['Threshold type: Select how to determine the max amplitude for thresholding. ' ...
-                                       'In window-based approaches, global maxima (compute_globmax_rois) are used.'];
-sProcess.options.threshtype.Type    = 'combobox';
-sProcess.options.threshtype.Value   = {1, {'Global-max', 'Time-max', 'Region-max'}};
+sProcess.options.threshtype1.Comment = ['Threshold type: Select how to determine the max amplitude for thresholding. ' ...
+    'In window-based approaches, global maxima (compute_globmax_rois) are used.'];
+sProcess.options.threshtype1.Type    = 'combobox';
+sProcess.options.threshtype1.Value   = {1, {'Global-max', 'Time-max', 'Region-max'}};
 
 sProcess.options.ratio4threshold.Comment = 'Threshold ratio (%): Percentage of the determined max value used as threshold.';
 sProcess.options.ratio4threshold.Type = 'value';
 sProcess.options.ratio4threshold.Value = {50, '%', 0, 100, 1, 1};
 
 sProcess.options.threshold_for_windows.Comment = ['<I>Note:</I> For the window-based approach, thresholds rely on global maxima ' ...
-                                                  '(from compute_globmax_rois) to ensure consistency across windows.'];
+    '(from compute_globmax_rois) to ensure consistency across windows.'];
 sProcess.options.threshold_for_windows.Type = 'label';
 sProcess.options.threshold_for_windows.Value = {};
 
@@ -175,12 +189,11 @@ sProcess.options.plotResults.Type    = 'checkbox';
 sProcess.options.plotResults.Value   = 1;
 
 sProcess.options.noteApplicability.Comment = ['<I>Note:</I> The .mat saving and plotting options apply only when ' ...
-                                              'the "Window based" method is selected.'];
+    'the "Window based" method is selected.'];
 sProcess.options.noteApplicability.Type = 'label';
 sProcess.options.noteApplicability.Value = {};
 
 end
-
 
 
 %% ===== FORMAT COMMENT =====
@@ -188,27 +201,33 @@ function Comment = FormatComment(sProcess) %#ok<DEFNU>
 Comment = sProcess.Comment;
 end
 
-
-%% ===== RUN =====
+%%
 function OutputFiles = Run(sProcess, sInput)
 
-% Stop any Brainstorm progress bar that may be running
+% Initialize output
+OutputFiles = {};
+
+% Load the results file
+sResultP = in_bst_results(sInput.FileName, 1);
+if isempty(sResultP)
+    error('Could not load the selected results file.');
+end
+
+% Stop any progress bars
 bst_progress('stop');
 
 % Extract user-defined options
 plotResults = sProcess.options.plotResults.Value;
 saveMat     = sProcess.options.saveMat.Value;
 savedir     = sProcess.options.savedir.Value;
+sname       = sProcess.options.sname.Value;
 
-OutputFiles = {};
+% Extract atlas selection
+atlasChoice = sProcess.options.atlas.Value{1};
+% atlasChoice == 1: HCP;
+% atlasChoice == 2: DK
 
-% ===== LOAD INPUT DATA =====
-sResultP = in_bst_results(sInput.FileName, 1);
-if isempty(sResultP)
-    error('Could not load the selected results file.');
-end
-
-% ===== TIME INTERVAL SETTINGS =====
+% Extract time interval method
 Tinterval = selectTimeInterval(sProcess.options.window.Value{1});
 
 % Determine the time range based on user selection
@@ -218,40 +237,36 @@ else
     timerange = 1; % For averaged or other intervals, default/legacy behavior
 end
 
-% ===== EFFECT TYPE =====
-effect = selectEffectType(sProcess.options.effect.Value{1});
-
-% ===== THRESHOLD SETTINGS =====
+% Extract effect type, threshold parameters
+effect          = selectEffectType(sProcess.options.effect.Value{1});
 Ratio4Threshold = sProcess.options.ratio4threshold.Value{1}/100;
-Threshtype = selectThresholdType(sProcess.options.threshtype.Value{1});
+Threshtype      = selectThresholdType(sProcess.options.threshtype1.Value{1});
 
-% ===== PROCESS IMAGE DATA =====
+% Process ImageGridAmp based on selected effect
 ImageGridAmp = processImageGridAmp(sResultP.ImageGridAmp, effect);
 
 % Determine max values for various time windows
 [AllMax, GlobalMax, t1, t2] = determineMaxValues(Tinterval, ImageGridAmp, sResultP, timerange);
 
-[sScout, ~] = convertHCPScout(sResultP);
-
-% If "Averaged Time Interval" is selected (value=2), and enough data points are available
+% If user chose Averaged Time Interval and sufficient data points:
 if sProcess.options.window.Value{1} == 2 && length(sResultP.Time) > 10
-    timerange = sProcess.options.poststim.Value{1};
+    timerange = sProcess.options.poststim_custom.Value{1};
     [~, t1] = min(abs(sResultP.Time - timerange(1)));
     [~, t2] = min(abs(sResultP.Time - timerange(2)));
     ImageGridAmp = mean(ImageGridAmp(:, t1:t2), 2);
 end
 
-% If "Window based" method is selected (value=3), set up time windows
+% If window-based, define time windows
 if sProcess.options.window.Value{1} == 3
-    winLength = sProcess.options.twindow.Value{1};
+    winLength = sProcess.options.twindow1.Value{1};
     overlap   = sProcess.options.toverlap.Value{1};
     
     cfg = [];
-    cfg.strt    = timerange(1);
-    cfg.spt     = timerange(2);
+    cfg.strt = timerange(1);
+    cfg.spt = timerange(2);
     cfg.overlap = overlap/1000;
     cfg.linterval = winLength/1000;
-    wi = generateTimeWindows(cfg);
+    wi  = generateTimeWindows(cfg);
 else
     wi = [];
 end
@@ -259,16 +274,27 @@ end
 disp('Selected intervals:')
 if sProcess.options.window.Value{1} == 3
     disp(['Interval: [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec, Window length: ', ...
-          num2str(winLength), ' ms, Overlap: ', num2str(overlap), '%']);
+        num2str(winLength), ' ms, Overlap: ', num2str(overlap), '%']);
     disp(wi);
 else
     disp(['Interval: [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec']);
 end
 
-% ===== DEFINE ROIs =====
-[RoiLabels, RoiIndices] = defineROIs_HCP(sScout);
+% Convert atlas and define ROIs based on user choice
+switch atlasChoice
+    case 1
+        % HCP atlas selected
+        [sScout, ~] = convertHCPScout(sResultP);
+        [RoiLabels, RoiIndices] = defineROIs_HCP(sScout);
+    case 2
+        % Desikan-Killiany atlas selected
+        [sScout, ~] = convertDesikanKillianyScout(sResultP);
+        [RoiLabels, RoiIndices] = defineROIs_DK(); % DK ROIs defined in defineROIs()
+    otherwise
+        error('Invalid atlas selection.');
+end
 
-% ===== CONFIGURE LI COMPUTATION =====
+% Prepare configuration for LI computation
 cfg_LI = [];
 cfg_LI.Tinterval       = Tinterval;
 cfg_LI.ImageGridAmp    = ImageGridAmp;
@@ -285,50 +311,54 @@ cfg_LI.t2              = t2;
 cfg_LI.plotResults     = plotResults;
 cfg_LI.saveMat         = saveMat;
 cfg_LI.savedir         = savedir;
+cfg_LI.sname           = sname;
+cfg_LI.Time            = sResultP.Time;
 cfg_LI.Comment         = sResultP.Comment;
 cfg_LI.windows         = wi; % Only meaningful if window-based
-cfg_LI.sname           = sProcess.options.sname.Value;
-cfg_LI.Time            = sResultP.Time;
 
-% ===== COMPUTE LI BASED ON SELECTED METHODS =====
-% At least one method should be selected; if not, warn the user
+% Determine which methods are selected
 methodsSelected = [sProcess.options.methodSource.Value, sProcess.options.methodCounting.Value, sProcess.options.methodBootstrap.Value];
 if ~any(methodsSelected)
-    warning('No LI computation method selected. Please choose at least one method (Source, Counting, or Bootstrapping).');
+    warning('No LI computation method selected. Please choose at least one method.');
     return;
 end
 
+% Source Magnitude Method
 if sProcess.options.methodSource.Value == 1
     disp('Computing LI using Source Magnitude Method...')
     cfg_LI.method = 1;
-    computeLI(cfg_LI); 
+    computeLI(cfg_LI);
     pause(0.2);
 end
 
+% Counting Method
 if sProcess.options.methodCounting.Value == 1
     disp('Computing LI using Counting Method...')
     cfg_LI.method = 2;
-    computeLI(cfg_LI); 
+    computeLI(cfg_LI);
     pause(0.2);
 end
 
+% Bootstrapping Method
 if sProcess.options.methodBootstrap.Value == 1
     disp('Computing LI with Bootstrapping...')
     cfg_LI.method = 3;
     cfg_LI.divs           = sProcess.options.divs.Value{1};
     cfg_LI.n_resampling   = sProcess.options.n_resampling.Value{1};
     cfg_LI.RESAMPLE_RATIO = sProcess.options.RESAMPLE_RATIO.Value{1} / 100;
-    computeLI(cfg_LI);  
+    computeLI(cfg_LI);
     pause(0.2);
 end
 
-disp(['LI assessed for interval: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec using the HCP-MMP1 atlas.']);
+disp(['LI assessed for interval: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec using the selected atlas.']);
 disp('If needed, edit process_computeLI.m after ensuring Brainstorm is running.')
 disp('LI analysis is completed!')
 
-OutputFiles = {}; % Adjust if your code generates output files
+% Set OutputFiles if you create any output files or results
+OutputFiles = {}; % Adjust this if you generate and want to return any results
 
 end
+
 
 % === HELPER FUNCTIONS ===
 function Tinterval = selectTimeInterval(Tinterval)
@@ -1251,3 +1281,105 @@ for ii = 1:length(cfg_LI.RoiIndices)
 end
 end
 
+
+function [sScout, ProtocolInfo] = convertDesikanKillianyScout(sResultP)
+% Convert the Desikan-Killiany scout to select scouts
+
+ProtocolInfo = bst_get('ProtocolInfo');
+SurfaceFile = load(fullfile(ProtocolInfo.SUBJECTS, sResultP.SurfaceFile));
+
+Scouts = [];
+sScout = [];
+for i = 1:length(SurfaceFile.Atlas)
+    if contains(SurfaceFile.Atlas(i).Name, {'Desikan-Killiany'})
+        Scouts = SurfaceFile.Atlas(i).Scouts;
+    end
+end
+sScout.Scouts = Scouts;
+
+expectedRegions = {...
+    'bankssts L', 'bankssts R', ...
+    'caudalanteriorcingulate L', 'caudalanteriorcingulate R', ...
+    'caudalmiddlefrontal L', 'caudalmiddlefrontal R', ...
+    'cuneus L', 'cuneus R', ...
+    'entorhinal L', 'entorhinal R', ...
+    'frontalpole L', 'frontalpole R', ...
+    'fusiform L', 'fusiform R', ...
+    'inferiorparietal L', 'inferiorparietal R', ...
+    'inferiortemporal L', 'inferiortemporal R', ...
+    'insula L', 'insula R', ...
+    'isthmuscingulate L', 'isthmuscingulate R', ...
+    'lateraloccipital L', 'lateraloccipital R', ...
+    'lateralorbitofrontal L', 'lateralorbitofrontal R', ...
+    'lingual L', 'lingual R', ...
+    'medialorbitofrontal L', 'medialorbitofrontal R', ...
+    'middletemporal L', 'middletemporal R', ...
+    'paracentral L', 'paracentral R', ...
+    'parahippocampal L', 'parahippocampal R', ...
+    'parsopercularis L', 'parsopercularis R', ...
+    'parsorbitalis L', 'parsorbitalis R', ...
+    'parstriangularis L', 'parstriangularis R', ...
+    'pericalcarine L', 'pericalcarine R', ...
+    'postcentral L', 'postcentral R', ...
+    'posteriorcingulate L', 'posteriorcingulate R', ...
+    'precentral L', 'precentral R', ...
+    'precuneus L', 'precuneus R', ...
+    'rostralanteriorcingulate L', 'rostralanteriorcingulate R', ...
+    'rostralmiddlefrontal L', 'rostralmiddlefrontal R', ...
+    'superiorfrontal L', 'superiorfrontal R', ...
+    'superiorparietal L', 'superiorparietal R', ...
+    'superiortemporal L', 'superiortemporal R', ...
+    'supramarginal L', 'supramarginal R', ...
+    'temporalpole L', 'temporalpole R', ...
+    'transversetemporal L', 'transversetemporal R'...
+    };
+
+% Handle case when number of anatomical regions are not identical to atlas regions
+actualRegions = {sScout.Scouts.Label};
+missingRegions = setdiff(expectedRegions, actualRegions);
+
+% Assuming sScout.Scouts is not empty and has at least one scout
+if ~isempty(sScout.Scouts)
+    % Identify all fields from the first scout as a template
+    fieldNames = fieldnames(sScout.Scouts(1));
+    % Prepare an empty scout template with all fields
+    emptyScout = cell2struct(cell(length(fieldNames), 1), fieldNames, 1);
+    
+    % Default empty values for known fields
+    emptyScout.Label = ''; % Update as necessary
+    emptyScout.Vertices = [];
+    emptyScout.Seed = 0; % Or any appropriate 'empty' value
+    
+    % For any other fields in your structure, set an appropriate 'empty' value
+    % For example, if there's a 'Color' field, you might do:
+    % emptyScout.Color = [0, 0, 0]; % Assuming color is RGB
+    % Adjust the above line for each additional field with a sensible 'empty' value
+    
+    % Now, handle missing regions with this updated emptyScout
+    for i = 1:length(missingRegions)
+        emptyScout.Label = missingRegions{i};
+        % Insert the empty scout at the correct position
+        idx = find(strcmp(expectedRegions, missingRegions{i}));
+        sScout.Scouts = [sScout.Scouts(1:idx-1), emptyScout, sScout.Scouts(idx:end)];
+    end
+else
+    warning('sScout.Scouts is empty, cannot determine structure fields.');
+end
+end
+
+function [RoiLabels, RoiIndices] = defineROIs_DK()
+% Define regions of interest (ROIs)
+
+AngSmg   = [15,16,63,64];
+Front    = [3,4,5,6,11,12,25,26,29,30,33,34,37,38,39,40,41,42,49,50,53,54,55,56,57,58];
+LatFront = [5,6,11,12,37,38,39,40,41,42,55,56,57,58];
+LatTemp  = [1,2,17,18,31,32,61,62,65,66,67,68];
+PeriSyl  = [15,16,37,38,41,42,61,62,63,64];
+Tanaka   = [37,38,41,42,61,62,63,64];
+Temp     = [1,2,9,10,13,14,17,18,19,20,27,28,31,32,35,36,61,62,65,66,67,68];
+Whole    = 1:68;
+
+RoiLabels = {'AngSmg', 'Front','LatFront','LatTemp', 'PeriSyl', 'Tanaka','Temp','Whole'};
+RoiIndices = {AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole};
+
+end
