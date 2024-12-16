@@ -79,10 +79,10 @@ Users can adjust the threshold ratio to control the sensitivity of region inclus
 
 1. **Open Brainstorm** and load your MEG protocol containing source-level results.
 
-2. **Select a Results File**: Choose the `...results...mat` file you wish to analyze.
+2. **Select a Source File**: in BS, drag and drop the source file to the 'Process1' window
 
 3. **Run the Custom Process**:
-    - In the Brainstorm **Process** tab, select **Compute LI, surface-based, HCP atlas**.
+    - In the Brainstorm **Process** tab, select **Compute LI (HCP or DK atlas, surface-based)**.
     - Adjust the process parameters as needed:
       - **Time interval method**: Specific, Averaged, or Window-based.
       - **Window parameters**: Window length and overlap (if using Window-based intervals).
