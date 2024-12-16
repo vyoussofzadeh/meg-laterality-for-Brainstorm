@@ -40,11 +40,12 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 - **Description**: A widely used, lower-resolution cortical parcellation suitable for broader, more anatomically coarse analyses.
 - **Resolution**: Coarser grained, beneficial for initial screenings or simpler ROI definitions.
 - **ROIs**: DK-based ROIs are grouped into categories (e.g., AngSmg, Front, LatFront, LatTemp, PeriSyl, Tanaka, Temp, Whole).
+- **No Extra Atlas Import Required**: If your anatomy is already segmented using FreeSurfer, the DK atlas labels are typically integrated into the default parcellation available in Brainstorm. This means you do not need to manually import a separate DK atlas—just select the DK scouts within Brainstorm.
 
 **Workflow:**
 1. **Co-Registration**: If using individual/native space, ensure that data is appropriately registered. For MNI space, follow the same steps as for HCP.
-2. **Load the DK Atlas**: In the Brainstorm Scout panel, load the Desikan-Killiany atlas.
-3. **Configure Pipeline**: Modify or use provided functions (`defineROIs_DK`, `convertDesikanKillianyScout`) to work with DK-based ROI groups.
+2. **Default Availability**: DK parcellation is typically included by default after FreeSurfer segmentation. Simply open the Scout panel in Brainstorm to access DK ROIs.
+3. **Configure Pipeline**: The pipeline functions (`defineROIs_DK`, `convertDesikanKillianyScout`) can be applied directly to these default DK scouts.
 
 ## Thresholding Mechanism
 
