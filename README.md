@@ -19,7 +19,7 @@ This repository hosts a Brainstorm-compatible pipeline for analyzing brain later
    ```bash
    git clone https://github.com/your-username/meg-laterality-for-Brainstorm.git
 
-2. **Add to MATLAB Path:**:
+2. **Add to MATLAB Path:**
    ```bash
    addpath('path_to_meg-laterality-for-Brainstorm');
    savepath;
