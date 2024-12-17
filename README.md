@@ -1,17 +1,17 @@
 # MELAB: MEG Lateralization Analysis for Brainstorm
 
-This repository hosts a Brainstorm-compatible pipeline for analyzing brain laterality using magnetoencephalography (MEG) task responses. The pipeline leverages [Brainstorm](https://neuroimage.usc.edu/brainstorm/) Matlab toolbox to facilitate robust analysis of hemispheric differences and lateralization indices (LI) in brain activity.
+This repository hosts a Brainstorm-compatible pipeline for analyzing brain laterality using magnetoencephalography (MEG) task responses. The pipeline leverages the [Brainstorm](https://neuroimage.usc.edu/brainstorm/) Matlab toolbox to facilitate robust analysis of hemispheric differences and lateralization indices (LI) in brain activity.
 
 ![Tool Interface](figures/fig1_tool.png)
 
-*Figure 1: Example interface of the LI computation process in Brainstorm, showing the options for surface atlas, time intervals, LI methods, thresholding, and output preferences.*
+*Figure 1: An example interface for the LI computation process in Brainstorm, illustrating the options for surface atlas, time intervals, LI methods, thresholding, and output preferences.*
 
 ## Prerequisites
 
 - **MATLAB**: Tested on MATLAB version 2024.
 - **Brainstorm**: Download and install from [the official website](https://neuroimage.usc.edu/brainstorm). Ensure Brainstorm is on your MATLAB path.
 - **MEG Data**: Source-level MEG data processed in Brainstorm (containing `ImageGridAmp`).
-- **HCP Atlas**: Ensure your subject’s anatomy is co-registered with the HCP MMP1.0 atlas or a compatible symmetrical MNI atlas. A compatible version `scout_mmp_in_mni_symmetrical.mat` is included in this repository. Simply import it into your Brainstorm using the atlas panel. Make sure to import it to the source file that is projected to the default MNI space (see below).
+- **HCP Atlas**: Ensure your subject’s anatomy is co-registered with the HCP MMP1.0 atlas or a compatible symmetrical MNI atlas. A compatible version, `scout_mmp_in_mni_symmetrical.mat`, is included in this repository. Simply import it into your Brainstorm using the atlas panel. Make sure to import it to the source file that is projected to the default MNI space (see below).
 
 ## Installation
 
