@@ -64,7 +64,7 @@ The pipeline provides several methods for computing a Lateralization Index (LI):
 You can also select different time intervals for analysis:
 - **Specific Time Interval**: Analyze a predefined time range.
 - **Averaged Time Interval**: Compute average activity across a chosen time segment.
-- **Window-based Analysis**: Segment data into overlapping or non-overlapping windows, computing LI for each segment to capture temporal evolution of lateralization.
+- **Window-based Analysis**: Segment data into overlapping or non-overlapping windows, computing LI for each segment to capture the temporal evolution of lateralization.
 
 ## Thresholding Mechanism
 
