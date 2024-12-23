@@ -31,7 +31,7 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 ### HCP Atlas, for MNI space only
 - **Description**: Utilizes the HCP MMP1.0 multimodal atlas aligned to a symmetrical MNI template.
 - **Resolution**: High-resolution cortical parcellation, enabling a fine-grained assessment of hemispheric dominance.
-- **ROIs**: Bilateral ROIs are grouped into four functional categories of Angular, Frontal, Temporal, Lateral.
+- **ROIs**: Bilateral ROIs are grouped into four functional categories of Angular, Frontal, Temporal, Lateral. See, `convertHCPScout` and `defineROIs_HCP` for more details.
 - **Reference**: See [Glasser et al. (2016), *Nature*](https://www.nature.com/articles/nature18933) for more details.
 
 **Workflow:**
