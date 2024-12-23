@@ -56,7 +56,7 @@ This pipeline currently supports the **Human Connectome Project (HCP) MMP1.0 atl
 The pipeline provides several methods for computing a Lateralization Index (LI):
 
 - **Source Magnitude Method**: Compares source amplitude across hemispheres.
-- **(Vertex) Counting Method**: Counts the number of suprathreshold vertices in left vs. right hemispheres.
+- **Counting Method**: Counts the number of suprathreshold vertices in left vs. right hemispheres.
 - **Bootstrapping Method**: Uses resampling to obtain LI confidence intervals (95% CI), providing estimates of uncertainty around the LI measurement.
 
 ## Time Interval Analysis
