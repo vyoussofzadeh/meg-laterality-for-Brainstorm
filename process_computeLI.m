@@ -271,12 +271,13 @@ else
     wi = [];
 end
 
-disp('Selected intervals:')
 if sProcess.options.window.Value{1} == 3
+    disp('Selected intervals:')
     disp(['Interval: [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec, Window length: ', ...
         num2str(winLength), ' ms, Overlap: ', num2str(overlap), '%']);
     disp(wi);
-else
+elseif  sProcess.options.window.Value{1} == 1
+    disp('Selected intervals:')
     disp(['Interval: [', num2str(timerange(1)), ', ', num2str(timerange(2)), '] sec']);
 end
 
@@ -350,7 +351,9 @@ if sProcess.options.methodBootstrap.Value == 1
     pause(0.2);
 end
 
-disp(['LI assessed for interval: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec using the selected atlas.']);
+if Tinterval == 1 || Tinterval == 3
+    disp(['LI assessed for interval: ', num2str(timerange(1)), '-', num2str(timerange(2)), ' sec using the selected atlas.']);
+end
 disp('If needed, edit process_computeLI.m after ensuring Brainstorm is running.')
 disp('LI analysis is completed!')
 
@@ -755,8 +758,18 @@ if size(ImageGridAmp,2) > 500
     ImageGridAmp = ImageGridAmp(:,1:10:end);
 end
 
-LHscout = horzcat(cfg_main.atlas.Scouts(RoiIndices(1:2:end)).Vertices);
-RHscout = horzcat(cfg_main.atlas.Scouts(RoiIndices(2:2:end)).Vertices);
+% For the left scouts (RoiIndices(1), (3), (5), ...):
+LHscoutCell = arrayfun(@(x) cfg_main.atlas.Scouts(x).Vertices(:), ...
+                       RoiIndices(1:2:end), ...
+                       'UniformOutput', false);
+LHscout = vertcat(LHscoutCell{:});
+
+% For the right scouts (RoiIndices(2), (4), (6), ...):
+RHscoutCell = arrayfun(@(x) cfg_main.atlas.Scouts(x).Vertices(:), ...
+                       RoiIndices(2:2:end), ...
+                       'UniformOutput', false);
+RHscout = vertcat(RHscoutCell{:});
+
 
 LHvals = ImageGridAmp(LHscout, :);
 RHvals = ImageGridAmp(RHscout, :);
@@ -899,9 +912,16 @@ for ii = 1:length(RoiIndices)
     curr_subregion = sScout.Scouts(RoiIndices{ii});
     
     % Split indices into left and right Rois
-    Ltemp_region = [curr_subregion(1:2:end).Vertices];
-    Rtemp_region = [curr_subregion(2:2:end).Vertices];
+    Ltemp_region = [];
+    for iSub = 1 : 2 : length(curr_subregion)
+        % Turn each .Vertices into a column, then append
+        Ltemp_region = [Ltemp_region; curr_subregion(iSub).Vertices(:)];
+    end
     
+    Rtemp_region = [];
+    for iSub = 2 : 2 : length(curr_subregion)
+        Rtemp_region = [Rtemp_region; curr_subregion(iSub).Vertices(:)];
+    end    
     % Get values for the current ROI
     switch cfg_LI.Tinterval % modified by VY
         case 2
