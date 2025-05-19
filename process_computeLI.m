@@ -14,8 +14,8 @@ function varargout = process_computeLI(varargin )
 %   - MEG source results
 %   - HCP MMP1.0 atlas integrated into the subject anatomy
 %
-% Author: Vahab YoussofZadeh, 2024
-% Last Update: 12/16/24
+% Author: Vahab Youssof Zadeh, 2025
+% Last Update: 05/19/25
 % Changes: Window-based LI analysis added.
 
 eval(macro_method);
@@ -674,6 +674,7 @@ end
 if isempty(windows) && cfg_LI.method ~= 3
     
     [Summ_LI, LI_label_out, L_count, R_count, threshold] = computeLI_Svalue_Count(cfg_LI);
+    Summ_LI = round(Summ_LI, 2); L_count = round(L_count, 2); R_count = round(R_count, 2);
     
     cfg_LI.Summ_LI = Summ_LI;
     cfg_LI.L_count = L_count;
@@ -688,7 +689,8 @@ elseif isempty(windows) && cfg_LI.method == 3
     
     cfg_LI.report = 0;
     [Summ_LI, Summ_CI, LI_label_out, L_count, R_count, CI_strings, CI_widths]  = computeLI_bootstrap(cfg_LI);
-    
+    Summ_LI = round(Summ_LI, 2); L_count = round(L_count, 2); R_count = round(R_count, 2);
+
     cfg_LI.Summ_LI = Summ_LI;
     cfg_LI.Summ_CI = Summ_CI;
     cfg_LI.L_count = L_count;
