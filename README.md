@@ -144,6 +144,10 @@ sFiles = bst_process('CallProcess', 'process_computeLI', sFiles, [], ...
 - **CI_95 (Bootstrapping)**: The 95% confidence interval provides an estimate of the uncertainty in LI. A narrower CI indicates more stable results.
 - **Window-based Analysis**: By examining LI across multiple time windows, you can understand how hemispheric dominance changes over time or in response to different tasks or stimuli.
 
+## Citation
+If you use **MELAB** or related MEG lateralization-index tools, please cite the following publication:
+- Youssofzadeh V, Binder JR, Heffernan J, Bock E, Jaiswal A, Stout J, Ustine C, Chikara RK, Shah-Basak P, Humphries C, Mathis J, Conant LL, Gross WL, Carlson C, Anderson CT, Hermann B, Meyerand B, Raghavan M. *Determining Hemispheric Language Dominance from MEG Beta-Power Modulations: Concordance with fMRI.* **NeuroImage**. 2026;338:122051. [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S1053811926003666)
+
 ### Support & Contributions
 If you have questions, encounter issues, or would like to contribute improvements:
 - **Issues**: Open an issue on this repository for troubleshooting or feature requests.
