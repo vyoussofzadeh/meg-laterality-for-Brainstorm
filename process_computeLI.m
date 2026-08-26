@@ -16,7 +16,7 @@ function varargout = process_computeLI(varargin )
 %
 % Author: Vahab Youssof Zadeh, 2025
 % Last Update: 08/26/26
-% Changes: Fixed Brainstorm time units, optimized windows/bootstrap, and improved the menu and figure.
+% Changes: Fixed/optimized window analysis and unified MAT/TSV export across interval modes.
 
 eval(macro_method);
 
@@ -25,7 +25,7 @@ end
 function sProcess = GetDescription() 
 % Configure the Brainstorm process menu for lateralization-index analysis.
 
-sProcess.Comment     = 'Lateralization index (LI): HCP / DK - beta';
+sProcess.Comment     = 'Lateralization index (LI): HCP / DK';
 sProcess.Category    = 'Custom';
 sProcess.SubGroup    = 'Sources';
 sProcess.Index       = 337;
@@ -160,18 +160,24 @@ sProcess.options.savedir.Value   = '';
 
 sProcess.options.sname.Comment = 'Output file name:';
 sProcess.options.sname.Type    = 'text';
-sProcess.options.sname.Value   = '';
+sProcess.options.sname.Value   = 'LI_results';
 
-sProcess.options.saveMat.Comment = 'Save sliding-window results as a MAT file';
+% Keep the legacy field name "saveMat" so existing Brainstorm pipelines
+% continue to load, but use it as the general save-results switch.
+sProcess.options.saveMat.Comment = 'Save LI results';
 sProcess.options.saveMat.Type    = 'checkbox';
 sProcess.options.saveMat.Value   = 0;
+
+sProcess.options.saveFormat.Comment = 'File format:';
+sProcess.options.saveFormat.Type    = 'combobox';
+sProcess.options.saveFormat.Value   = {1, {'MAT file (.mat)', 'Tab-delimited text (.tsv)'}};
 
 sProcess.options.plotResults.Comment = 'Plot LI across sliding windows';
 sProcess.options.plotResults.Type    = 'checkbox';
 sProcess.options.plotResults.Value   = 1;
 
-sProcess.options.output_note.Comment = ['<I>MAT-file saving and temporal plots apply only to Sliding windows. ' ...
-    'The results folder and file name are also used by text reports.</I>'];
+sProcess.options.output_note.Comment = ['<I>Saving applies to Single interval, Average across interval, and Sliding windows. ' ...
+    'Temporal plotting applies only to Sliding windows.</I>'];
 sProcess.options.output_note.Type  = 'label';
 sProcess.options.output_note.Value = {};
 
@@ -199,9 +205,14 @@ bst_progress('stop');
 
 % Extract user-defined options
 plotResults = sProcess.options.plotResults.Value;
-saveMat     = sProcess.options.saveMat.Value;
-savedir     = sProcess.options.savedir.Value;
-sname       = sProcess.options.sname.Value;
+saveResults = sProcess.options.saveMat.Value; % Legacy option field, now applies to all modes
+if isfield(sProcess.options, 'saveFormat')
+    saveFormat = sProcess.options.saveFormat.Value{1};
+else
+    saveFormat = 1; % Backward-compatible default: MAT
+end
+savedir = sProcess.options.savedir.Value;
+sname   = sProcess.options.sname.Value;
 
 % Extract atlas selection
 atlasChoice = sProcess.options.atlas.Value{1};
@@ -314,7 +325,9 @@ cfg_LI.Ratio4Threshold = Ratio4Threshold;
 cfg_LI.t1              = t1;
 cfg_LI.t2              = t2;
 cfg_LI.plotResults     = plotResults;
-cfg_LI.saveMat         = saveMat;
+cfg_LI.saveResults     = saveResults;
+cfg_LI.saveFormat      = saveFormat;
+cfg_LI.saveMat         = saveResults; % Legacy alias
 cfg_LI.savedir         = savedir;
 cfg_LI.sname           = sname;
 cfg_LI.Time            = sResultP.Time;
@@ -686,7 +699,9 @@ if isempty(windows) && cfg_LI.method ~= 3
     cfg_LI.threshold = threshold;
     cfg_LI.LI_label_out = LI_label_out;
     
-    export_LI(cfg_LI)
+    if cfg_LI.saveResults == 1
+        export_LI_results(cfg_LI);
+    end
     report_LI(cfg_LI)
     
 elseif isempty(windows) && cfg_LI.method == 3
@@ -704,7 +719,9 @@ elseif isempty(windows) && cfg_LI.method == 3
     cfg_LI.CI_widths = CI_widths;
     cfg_LI.LI_label_out = LI_label_out;
     
-    export_LI(cfg_LI)
+    if cfg_LI.saveResults == 1
+        export_LI_results(cfg_LI);
+    end
     report_LI(cfg_LI)
     
 elseif ~isempty(windows) && cfg_LI.Tinterval == 3
@@ -750,8 +767,8 @@ elseif ~isempty(windows) && cfg_LI.Tinterval == 3
     
     cfg_LI.LI_summary = LI_summary;
     
-    if cfg_LI.saveMat == 1
-        export_tLI(cfg_LI);
+    if cfg_LI.saveResults == 1
+        export_LI_results(cfg_LI);
     end
     
 end
@@ -1283,144 +1300,199 @@ switch cfg_LI.method
 end
 end
 
-function export_tLI(cfg_LI)
+function export_LI_results(cfg_LI)
+% EXPORT_LI_RESULTS Save any interval mode as MAT or tab-delimited text.
 
-folderPath = fullfile(cfg_LI.savedir);
-if ~exist(folderPath, 'dir')
-    mkdir(folderPath);
-    disp('Folder created successfully.');
-else
-    disp('Folder already exists.');
-end
-
-sname = cfg_LI.sname;
-
-sLI = [];
-sLI.final_LI      = cfg_LI.final_LI;
-sLI.windows       = cfg_LI.windows;
-sLI.RoiLabels     = cfg_LI.RoiLabels;
-sLI.LI_summary    = cfg_LI.LI_summary;
-sLI.filename      = cfg_LI.Comment;
-sLI.Threshtype    = cfg_LI.Threshtype;
-sLI.globmax_rois  = cfg_LI.globmax_rois;
-
-switch cfg_LI.method
-    case 1
-        mtd_label = 'S';
-    case 2
-        mtd_label = 'C';
-    case 3
-        mtd_label = 'B';
-        sLI.ConfInt     = cfg_LI.final_CI;
-        sLI.n_resampling = cfg_LI.n_resampling;
-        sLI.divs         = cfg_LI.divs;
-end
-
-save(fullfile(folderPath,[sname, '_',mtd_label, '.mat']), '-struct', 'sLI');
-
-end
-
-function export_LI(cfg_LI)
-% EXPORT_LI saves the computed LI results to a file, adapting format based on the chosen method.
-% For non-bootstrapping methods (1 or 2), it saves a simple table with LI and L/R counts.
-% For the bootstrapping method (3), it includes CI and CI width as well.
-%
-% The function also handles directory creation and clearly reports where the file is saved.
-
-% Ensure savedir is defined
-folderPath = fullfile(cfg_LI.savedir);
+folderPath = strtrim(char(cfg_LI.savedir));
 if isempty(folderPath)
-    warning('No saving directory specified (cfg_LI.savedir is empty). Results will not be saved.');
+    warning('No Results folder was specified. LI results were not saved.');
     return;
 end
-
-% Create the folder path if it does not exist
 if ~exist(folderPath, 'dir')
-    mkdir(folderPath);
-    disp(['Folder created successfully at: ', folderPath]);
-else
-    disp(['Using existing directory: ', folderPath]);
+    [ok, msg] = mkdir(folderPath);
+    if ~ok
+        warning('Could not create Results folder "%s": %s', folderPath, msg);
+        return;
+    end
 end
 
-% Determine method label
+baseName = strtrim(char(cfg_LI.sname));
+if isempty(baseName)
+    baseName = 'LI_results';
+end
+[~, baseName, ~] = fileparts(baseName);
+baseName = regexprep(baseName, '[<>:"/\\|?*]', '_');
+baseName = regexprep(baseName, '\s+', '_');
+
 switch cfg_LI.method
     case 1
-        mtd_label = 'Mag'; % Source Magnitude
+        methodLabel = 'Magnitude';
     case 2
-        mtd_label = 'Count'; % Counting
+        methodLabel = 'Count';
     case 3
-        mtd_label = 'Boot'; % Bootstrapping
+        methodLabel = 'Bootstrap';
     otherwise
-        warning('Unknown LI method code. Cannot determine filename label.');
-        mtd_label = 'X';
+        methodLabel = sprintf('Method%d', cfg_LI.method);
 end
 
-% Construct filename based on Tinterval and method
-if cfg_LI.Tinterval == 2
-    % Averaged Time Interval case
-    if cfg_LI.method == 3
-        % Bootstrapping method for averaged interval
-        filename = fullfile(folderPath, ['/LI_', mtd_label, '_', cfg_LI.sname, '.xls']);
-    else
-        % Source or Counting method for averaged interval
-        filename = fullfile(folderPath, ['/LI_', mtd_label, '_', cfg_LI.sname, '_Th', num2str(cfg_LI.Ratio4Threshold), '.xls']);
+switch cfg_LI.Tinterval
+    case 1
+        intervalLabel = 'Single';
+    case 2
+        intervalLabel = 'Average';
+    case 3
+        intervalLabel = 'Windows';
+    otherwise
+        intervalLabel = sprintf('Interval%d', cfg_LI.Tinterval);
+end
+
+fileStem = sprintf('%s_%s_%s', baseName, intervalLabel, methodLabel);
+
+if ~isfield(cfg_LI, 'saveFormat') || isempty(cfg_LI.saveFormat)
+    saveFormat = 1;
+else
+    saveFormat = cfg_LI.saveFormat;
+end
+
+switch saveFormat
+    case 1
+        filename = fullfile(folderPath, [fileStem, '.mat']);
+        sLI = build_LI_export_struct(cfg_LI, methodLabel, intervalLabel);
+        save(filename, '-struct', 'sLI');
+    case 2
+        filename = fullfile(folderPath, [fileStem, '.tsv']);
+        if ~write_LI_tsv(cfg_LI, filename, methodLabel, intervalLabel)
+            return;
+        end
+    otherwise
+        warning('Unknown save format code %g. LI results were not saved.', saveFormat);
+        return;
+end
+
+fprintf('LI results saved to:\n%s\n', filename);
+end
+
+
+function sLI = build_LI_export_struct(cfg_LI, methodLabel, intervalLabel)
+% Create a compact result structure without copying the full source matrix.
+
+sLI = struct();
+sLI.format_version = 2;
+sLI.method_code = cfg_LI.method;
+sLI.method = methodLabel;
+sLI.interval_code = cfg_LI.Tinterval;
+sLI.interval_method = intervalLabel;
+sLI.analysis_range_s = cfg_LI.timerange;
+sLI.ROI_labels = cfg_LI.RoiLabels(:);
+sLI.source_comment = cfg_LI.Comment;
+sLI.threshold_type = cfg_LI.Threshtype;
+sLI.threshold_ratio = cfg_LI.Ratio4Threshold;
+
+if cfg_LI.Tinterval == 3 && isfield(cfg_LI, 'final_LI')
+    sLI.LI = cfg_LI.final_LI;
+    sLI.windows_s = cfg_LI.windows;
+    sLI.window_centers_s = mean(cfg_LI.windows, 2);
+    if isfield(cfg_LI, 'LI_summary')
+        sLI.summary = cfg_LI.LI_summary;
+    end
+    if isfield(cfg_LI, 'final_CI')
+        sLI.CI_95 = cfg_LI.final_CI;
     end
 else
-    % Specific Time Interval (1) or Window based (3)
-    if cfg_LI.method == 3
-        % Bootstrapping method for window-based or specific interval
-        filename = fullfile(folderPath, ['/LI', mtd_label, '_', cfg_LI.sname, ' T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '.xls']);
-    else
-        % Source or Counting method for specific or window intervals
-        filename = fullfile(folderPath, ['/LI', mtd_label, '_', cfg_LI.sname, ' T ', num2str(cfg_LI.timerange(1)), '-', num2str(cfg_LI.timerange(2)), '_Thre ', num2str(cfg_LI.Ratio4Threshold), '.xls']);
+    sLI.LI = cfg_LI.Summ_LI(:);
+    if isfield(cfg_LI, 'Summ_CI')
+        sLI.CI_95 = cfg_LI.Summ_CI;
+    end
+    if isfield(cfg_LI, 'L_count')
+        sLI.left_measure = cfg_LI.L_count(:);
+        sLI.right_measure = cfg_LI.R_count(:);
+    end
+    if isfield(cfg_LI, 'threshold')
+        sLI.threshold = cfg_LI.threshold;
     end
 end
 
-% Open file for writing
-tempfile = fopen(filename, 'w');
-if tempfile == -1
-    warning(['Could not open file for writing: ', filename]);
+if cfg_LI.method == 3
+    sLI.bootstrap_samples = cfg_LI.n_resampling;
+    sLI.threshold_divisions = cfg_LI.divs;
+    sLI.resample_ratio = cfg_LI.RESAMPLE_RATIO;
+end
+end
+
+
+function success = write_LI_tsv(cfg_LI, filename, methodLabel, intervalLabel)
+% Write a genuine tab-delimited text file for any interval mode.
+
+success = false;
+fid = fopen(filename, 'wt');
+if fid == -1
+    warning('Could not open output file for writing: %s', filename);
     return;
 end
+closeFile = onCleanup(@() fclose(fid));
 
-% Print results depending on the method
-switch cfg_LI.method
-    case {1, 2}
-        % Simple header for Source or Counting method
-        fprintf(tempfile, 'ROI\tLI\tLeft_count\tRight_count\n');
-        
-        L_count1 = cfg_LI.L_count(:);
-        R_count1 = cfg_LI.R_count(:);
-        
-        for i = 1:length(cfg_LI.LI_label_out)
-            fprintf(tempfile, '%s\t%f\t%d\t%d\n', ...
-                cfg_LI.LI_label_out{i}, cfg_LI.Summ_LI(i), L_count1(i), R_count1(i));
-        end
-        
-        % Print threshold used
-        fprintf(tempfile, 'Threshold\t%f\n', cfg_LI.threshold);
-        
-    case 3
-        % Bootstrapping method: Include CI and CI width
-        % Print headers including CI and vertex counts
-        fprintf(tempfile, 'ROI\tLI\tCI\tCI_Width\tL_Vertices\tR_Vertices\n');
-        
-        L_count1 = cfg_LI.L_count(:);
-        R_count1 = cfg_LI.R_count(:);
-        for i = 1:length(cfg_LI.LI_label_out)
-            fprintf(tempfile, '%s\t%f\t%s\t%f\t%d\t%d\n', ...
-                cfg_LI.LI_label_out{i}, cfg_LI.Summ_LI(i), cfg_LI.CI_strings{i}, cfg_LI.CI_widths(i), L_count1(i), R_count1(i));
-        end
+fprintf(fid, '# LI method\t%s\n', methodLabel);
+fprintf(fid, '# Interval method\t%s\n', intervalLabel);
+if numel(cfg_LI.timerange) >= 2
+    fprintf(fid, '# Analysis range (s)\t%.10g\t%.10g\n', ...
+        cfg_LI.timerange(1), cfg_LI.timerange(2));
 end
 
-% Add a newline for separation
-fprintf(tempfile, '\n');
-fclose(tempfile);
+if cfg_LI.Tinterval == 3 && isfield(cfg_LI, 'final_LI')
+    [nWindows, nRois] = size(cfg_LI.final_LI);
+    hasCI = cfg_LI.method == 3 && isfield(cfg_LI, 'final_CI') && ...
+        size(cfg_LI.final_CI,1) == nWindows && ...
+        size(cfg_LI.final_CI,2) >= nRois && size(cfg_LI.final_CI,3) >= 2;
+    
+    if hasCI
+        fprintf(fid, 'Window\tStart_s\tEnd_s\tCenter_s\tROI\tLI\tCI_Lower\tCI_Upper\n');
+    else
+        fprintf(fid, 'Window\tStart_s\tEnd_s\tCenter_s\tROI\tLI\n');
+    end
+    
+    for w = 1:nWindows
+        centerTime = mean(cfg_LI.windows(w,:));
+        for r = 1:nRois
+            roiLabel = regexprep(char(cfg_LI.RoiLabels{r}), '[\t\r\n]', ' ');
+            if hasCI
+                fprintf(fid, '%d\t%.10g\t%.10g\t%.10g\t%s\t%.10g\t%.10g\t%.10g\n', ...
+                    w, cfg_LI.windows(w,1), cfg_LI.windows(w,2), centerTime, ...
+                    roiLabel, cfg_LI.final_LI(w,r), ...
+                    cfg_LI.final_CI(w,r,1), cfg_LI.final_CI(w,r,2));
+            else
+                fprintf(fid, '%d\t%.10g\t%.10g\t%.10g\t%s\t%.10g\n', ...
+                    w, cfg_LI.windows(w,1), cfg_LI.windows(w,2), centerTime, ...
+                    roiLabel, cfg_LI.final_LI(w,r));
+            end
+        end
+    end
+else
+    roiLabels = cfg_LI.RoiLabels(:);
+    if cfg_LI.method == 3 && isfield(cfg_LI, 'Summ_CI')
+        fprintf(fid, 'ROI\tLI\tCI_Lower\tCI_Upper\tCI_Width\tLeft_Measure\tRight_Measure\n');
+        for r = 1:numel(roiLabels)
+            roiLabel = regexprep(char(roiLabels{r}), '[\t\r\n]', ' ');
+            fprintf(fid, '%s\t%.10g\t%.10g\t%.10g\t%.10g\t%.10g\t%.10g\n', ...
+                roiLabel, cfg_LI.Summ_LI(r), ...
+                cfg_LI.Summ_CI(r,1), cfg_LI.Summ_CI(r,2), ...
+                cfg_LI.Summ_CI(r,2) - cfg_LI.Summ_CI(r,1), ...
+                cfg_LI.L_count(r), cfg_LI.R_count(r));
+        end
+    else
+        fprintf(fid, 'ROI\tLI\tLeft_Measure\tRight_Measure\n');
+        for r = 1:numel(roiLabels)
+            roiLabel = regexprep(char(roiLabels{r}), '[\t\r\n]', ' ');
+            fprintf(fid, '%s\t%.10g\t%.10g\t%.10g\n', ...
+                roiLabel, cfg_LI.Summ_LI(r), cfg_LI.L_count(r), cfg_LI.R_count(r));
+        end
+        if isfield(cfg_LI, 'threshold')
+            fprintf(fid, '# Threshold\t%.10g\n', cfg_LI.threshold);
+        end
+    end
+end
 
-% Display where the results are saved
-disp('Results saved to:');
-disp(filename);
-
+success = true;
+clear closeFile
 end
 
 function globmax_rois = compute_globmax_rois(cfg_LI)
