@@ -22,7 +22,7 @@ eval(macro_method);
 
 end
 
-function sProcess = GetDescription() %#ok<DEFNU>
+function sProcess = GetDescription() 
 % PROCESS_COMPUTELI_HCP: Compute the Lateralization Index (LI) on HCP atlas-based source data.
 % Provides several methods (source magnitude, counting, bootstrapping) and time interval strategies (specific, averaged, window-based).
 % Supports thresholding and optional saving of results as .mat and plotting.
@@ -197,7 +197,7 @@ end
 
 
 %% ===== FORMAT COMMENT =====
-function Comment = FormatComment(sProcess) %#ok<DEFNU>
+function Comment = FormatComment(sProcess) 
 Comment = sProcess.Comment;
 end
 
