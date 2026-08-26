@@ -429,7 +429,7 @@ SurfaceFile = load(fullfile(ProtocolInfo.SUBJECTS, sResultP.SurfaceFile));
 Scouts = [];
 sScout = [];
 for i = 1:length(SurfaceFile.Atlas)
-    if contains(SurfaceFile.Atlas(i).Name, {'mmp_in_mni_symmetrical_1.nii_05'})
+    if contains(SurfaceFile.Atlas(i).Name, {'mmp_in_mni_symmetrical_1.nii'})
         Scouts = SurfaceFile.Atlas(i).Scouts;
     end
 end
@@ -1205,11 +1205,11 @@ end
 % Determine method label
 switch cfg_LI.method
     case 1
-        mtd_label = 'S'; % Source Magnitude
+        mtd_label = 'Mag'; % Source Magnitude
     case 2
-        mtd_label = 'C'; % Counting
+        mtd_label = 'Count'; % Counting
     case 3
-        mtd_label = 'B'; % Bootstrapping
+        mtd_label = 'Boot'; % Bootstrapping
     otherwise
         warning('Unknown LI method code. Cannot determine filename label.');
         mtd_label = 'X';
